@@ -6,5 +6,5 @@ One-step installer for Codex tooling on Windows.
 Run from PowerShell:
 
 ```powershell
-irm "https://christitus.com/win" | iex
+irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" | iex
 ```

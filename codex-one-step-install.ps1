@@ -43,4 +43,3 @@ npm -v
 python --version
 
 Write-Host "[Codex] Done." -ForegroundColor Green
-irm "https://christitus.com/win" | iex
