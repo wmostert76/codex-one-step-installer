@@ -22,16 +22,6 @@ irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/v1.0.0
 
 ---
 
-## Stunning overview (marketing tone)
-The fastest path to a clean Codex setup on Windows. Run one command and get a guided installer that does the right thing by default. Re-run it any time to upgrade or repair without guesswork.
-
-### Highlights
-- One command, zero setup.
-- Pinned tags for repeatable installs.
-- Clear prompts and predictable outcomes.
-
----
-
 ## Technical details (engineering tone)
 This installer pulls and runs a PowerShell script that guides the setup of Codex tooling on Windows.
 
@@ -39,6 +29,11 @@ This installer pulls and runs a PowerShell script that guides the setup of Codex
 - Downloads the installer script and executes it in the current shell.
 - Guides you through required inputs with clear prompts.
 - Supports pinned tag installs for stable, repeatable environments.
+
+### Script summary
+- `codex-one-step-install.ps1` downloads the required tooling and runs the setup flow.
+- The GitHub Pages short link resolves to the current recommended installer entry point.
+- The raw GitHub URL targets a specific branch or tag for stability.
 
 ### Safety notes
 - Review the script before running if you prefer.
