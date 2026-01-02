@@ -4,7 +4,8 @@
 
 $ErrorActionPreference = 'Stop'
 
-Write-Host "[Codex] Starting one-step install..." -ForegroundColor Cyan
+Write-Host "Codex One-Step Installer" -ForegroundColor Cyan
+Write-Host "------------------------" -ForegroundColor Cyan
 
 # Ensure TLS 1.2 for winget downloads
 try {
@@ -25,21 +26,47 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
   throw "winget not found. Please install App Installer from Microsoft Store, then re-run."
 }
 
-# Install Node.js LTS (includes npm and PATH updates)
-Write-Host "[Codex] Installing Node.js LTS..." -ForegroundColor Yellow
-winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
+function Install-Node {
+  Write-Host "[Codex] Installing Node.js LTS..." -ForegroundColor Yellow
+  winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
+}
 
-# Install Python (adds to PATH)
-Write-Host "[Codex] Installing Python..." -ForegroundColor Yellow
-winget install --id Python.Python.3 -e --accept-source-agreements --accept-package-agreements
+function Install-Python {
+  Write-Host "[Codex] Installing Python..." -ForegroundColor Yellow
+  winget install --id Python.Python.3 -e --accept-source-agreements --accept-package-agreements
+}
 
-# Refresh PATH for this session (no reboot required for the script)
-$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
+function Refresh-Path {
+  $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
+}
 
-# Verify installations
-Write-Host "[Codex] Verifying installs..." -ForegroundColor Yellow
-node -v
-npm -v
-python --version
+function Verify-Installs {
+  Write-Host "[Codex] Verifying installs..." -ForegroundColor Yellow
+  node -v
+  npm -v
+  python --version
+}
 
-Write-Host "[Codex] Done." -ForegroundColor Green
+function Run-All {
+  Install-Node
+  Install-Python
+  Refresh-Path
+  Verify-Installs
+  Write-Host "[Codex] Done." -ForegroundColor Green
+}
+
+Write-Host ""
+Write-Host "Choose an option:" -ForegroundColor Cyan
+Write-Host "  [1] Install Node.js LTS"
+Write-Host "  [2] Install Python"
+Write-Host "  [3] Run all (default)"
+Write-Host "  [4] Exit"
+Write-Host ""
+
+$choice = Read-Host "Selection"
+switch ($choice) {
+  '1' { Install-Node; Refresh-Path; Verify-Installs }
+  '2' { Install-Python; Refresh-Path; Verify-Installs }
+  '4' { return }
+  default { Run-All }
+}
