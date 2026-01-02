@@ -1,5 +1,21 @@
-# Codex One-Step Installer
+```
+ ██████╗ ██████╗ ██████╗ ███████╗██╗  ██╗
+██╔════╝██╔═══██╗██╔══██╗██╔════╝╚██╗██╔╝
+██║     ██║   ██║██████╔╝█████╗   ╚███╔╝ 
+██║     ██║   ██║██╔══██╗██╔══╝   ██╔██╗ 
+╚██████╗╚██████╔╝██║  ██║███████╗██╔╝ ██╗
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+        ONE-STEP INSTALLER :: 198X EDITION
+```
+
 Install Codex tooling on Windows in one command. Clear prompts, repeatable installs, and a smooth first run.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  SIGNAL BOOST:  BOOTSTRAP • CONFIGURE • LAUNCH              │
+│  MODE:          CRT-GLOW / SCANLINES / SYNTHWAVE            │
+└──────────────────────────────────────────────────────────────┘
+```
 
 ## Quick start
 Short launcher (GitHub Pages):
@@ -50,6 +66,15 @@ irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/v1.0.0
 ```
 
 ---
+
+## Retro panel (status)
+```
+┌──────────────────────────────────────────────────────────────┐
+│  STATUS: READY                                               │
+│  INPUT : irm "<URL>" | iex                                   │
+│  OUTPUT: Codex tooling configured for Windows                │
+└──────────────────────────────────────────────────────────────┘
+```
 
 ## FAQ
 **Is this safe to run?**
