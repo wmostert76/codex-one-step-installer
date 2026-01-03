@@ -11,7 +11,7 @@ param(
   [switch]$SkipPython,
   [switch]$DryRun,
   [switch]$Repair,
-  [string]$CodexPackage
+  [string]$CodexPackage = 'npm:@openai/codex'
 )
 
 $script:TranscriptStarted = $false
@@ -168,8 +168,6 @@ function Install-Python {
 
 function Install-CodexCli {
   if (-not $CodexPackage) {
-    Write-Host "[Codex] Codex CLI install skipped (no package specified)." -ForegroundColor Yellow
-    Write-Host "[Codex] Use -CodexPackage npm:PACKAGE or pip:PACKAGE to enable." -ForegroundColor Yellow
     return
   }
 

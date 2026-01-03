@@ -43,6 +43,7 @@ This installer pulls and runs a PowerShell script that guides the setup of Codex
 ### What it does
 - Downloads the installer script and executes it in the current shell.
 - Runs the full install flow (Node.js LTS + Python) automatically.
+- Installs Codex CLI via npm (`@openai/codex`) by default.
 - Supports pinned tag installs for stable, repeatable environments.
 - Writes a log file to `%TEMP%` and prints the path.
 
@@ -56,6 +57,7 @@ iex "& { $s } -SkipPython"
 iex "& { $s } -Repair"
 iex "& { $s } -CodexPackage npm:your-codex-package"
 iex "& { $s } -CodexPackage pip:your-codex-package"
+iex "& { $s } -CodexPackage ''"  # disable Codex CLI install
 ```
 
 ### Script summary
