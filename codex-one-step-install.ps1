@@ -75,13 +75,20 @@ function Install-Python {
   throw "Python install failed for all known IDs."
 }
 
-function Install-CodexCli {
-  Write-Host "[Codex] Installing Codex CLI (@openai/codex)..." -ForegroundColor Yellow
-  npm i -g @openai/codex
-}
-
 function Refresh-Path {
   $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
+}
+
+function Install-CodexCli {
+  Write-Host "[Codex] Installing Codex CLI (@openai/codex)..." -ForegroundColor Yellow
+  Refresh-Path
+  if (Get-Command npm.cmd -ErrorAction SilentlyContinue) {
+    npm.cmd i -g @openai/codex
+  } elseif (Get-Command npm -ErrorAction SilentlyContinue) {
+    npm i -g @openai/codex
+  } else {
+    throw "npm not found on PATH after Node.js install. Please open a new terminal and re-run."
+  }
 }
 
 function Verify-Installs {
