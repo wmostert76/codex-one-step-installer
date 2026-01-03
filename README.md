@@ -17,6 +17,12 @@ Short launcher (GitHub Pages):
 irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex
 ```
 
+Cache-buster (when GitHub Pages is stale):
+
+```powershell
+irm "https://wmostert76.github.io/Codex-OneStep-Installer/win?nocache=YYYYMMDD" | iex
+```
+
 Direct raw script (latest):
 
 ```powershell
@@ -38,6 +44,18 @@ This installer pulls and runs a PowerShell script that guides the setup of Codex
 - Downloads the installer script and executes it in the current shell.
 - Runs the full install flow (Node.js LTS + Python) automatically.
 - Supports pinned tag installs for stable, repeatable environments.
+- Writes a log file to `%TEMP%` and prints the path.
+
+### Flags
+```powershell
+irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -Silent
+irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -DryRun
+irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -SkipNode
+irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -SkipPython
+irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -Repair
+irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -CodexPackage npm:your-codex-package
+irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -CodexPackage pip:your-codex-package
+```
 
 ### Script summary
 - `codex-one-step-install.ps1` downloads the required tooling and runs the setup flow.
