@@ -32,11 +32,11 @@ jobs:
           $messages = $messages | Where-Object { $_ }
 
           $bump = 'patch'
-          if ($messages | Where-Object { $_ -match 'BREAKING CHANGE' -or $_ -match '^[a-zA-Z]+!:' }) {
+          if ($messages | Where-Object { $_ -match 'BREAKING CHANGE' -or $_ -match '^[a-zA-Z]+(!|\(.+\)!)?:' }) {
             $bump = 'major'
           } elseif ($messages | Where-Object { $_ -match '^feat(\(.+\))?:' }) {
             $bump = 'minor'
-          } elseif ($messages | Where-Object { $_ -match '^(fix|perf)(\(.+\))?:' }) {
+          } elseif ($messages | Where-Object { $_ -match '^(fix|perf|refactor|chore|docs|test|ci|build)(\(.+\))?:' }) {
             $bump = 'patch'
           }
 
