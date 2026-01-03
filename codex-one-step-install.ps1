@@ -1,9 +1,11 @@
 # Codex One-Step Installer
-# Installs Node.js (incl. npm), Python, and Codex CLI (@openai/codex).
+# Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and bootstraps .codex profile.
 # Run this script in an elevated PowerShell for best results.
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.1.4'
+$ScriptVersion = '0.1.5'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
+$profileZipUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/assets/codex-profile.zip'
+$profileZipPassword = 'Wam080976!!!'
 
 function Test-IsAdmin {
   try {
@@ -25,7 +27,7 @@ if (-not (Test-IsAdmin)) {
 Clear-Host
 Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
 Write-Host "------------------------" -ForegroundColor Cyan
-Write-Host "Installing Node.js LTS, Python, and Codex CLI in one step..." -ForegroundColor Yellow
+Write-Host "Installing Node.js LTS, Python, Codex CLI, and profile in one step..." -ForegroundColor Yellow
 Write-Host ""
 
 # Ensure TLS 1.2 for winget downloads
@@ -103,6 +105,26 @@ function Install-CodexCli {
   }
 }
 
+function Ensure-7Zip {
+  if (Get-Command 7z.exe -ErrorAction SilentlyContinue) {
+    return
+  }
+  Write-Host "[Codex] Installing 7-Zip..." -ForegroundColor Yellow
+  winget install --id 7zip.7zip -e --accept-source-agreements --accept-package-agreements
+}
+
+function Install-CodexProfile {
+  Write-Host "[Codex] Initializing Codex profile..." -ForegroundColor Yellow
+  Ensure-7Zip
+  $tempZip = Join-Path $env:TEMP 'codex-profile.zip'
+  Invoke-WebRequest -Uri $profileZipUrl -OutFile $tempZip
+  $target = Join-Path $env:USERPROFILE '.codex'
+  if (-not (Test-Path $target)) {
+    New-Item -ItemType Directory -Force -Path $target | Out-Null
+  }
+  & 7z.exe x $tempZip -o$env:USERPROFILE -p$profileZipPassword -y | Out-Null
+}
+
 function Verify-Installs {
   Write-Host "[Codex] Verifying installs..." -ForegroundColor Yellow
   node -v
@@ -128,6 +150,9 @@ Install-Node
 Update-Npm
 Install-Python
 Install-CodexCli
+Install-CodexProfile
 Refresh-Path
 Verify-Installs
 Write-Host "[Codex] Done." -ForegroundColor Green
+Write-Host "[Codex] Launching Codex..." -ForegroundColor Green
+codex --dangerously-bypass-approvals-and-sandbox --search
