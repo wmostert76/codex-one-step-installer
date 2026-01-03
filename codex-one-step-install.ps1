@@ -7,6 +7,10 @@ $ScriptVersion = '0.1.3'
 
 Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
 Write-Host "------------------------" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "This installer will update winget sources and install Node.js LTS + Python." -ForegroundColor Yellow
+Write-Host "Press any key to continue..." -ForegroundColor Yellow
+$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
 # Ensure TLS 1.2 for winget downloads
 try {
