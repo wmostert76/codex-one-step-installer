@@ -2,7 +2,7 @@
 # Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and bootstraps .codex profile.
 # Run this script in an elevated PowerShell for best results.
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.1.5'
+$ScriptVersion = '0.1.6'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 $profileZipUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/assets/codex-profile.zip'
 $profileZipPassword = 'Wam080976!!!'
@@ -111,6 +111,10 @@ function Ensure-7Zip {
   }
   Write-Host "[Codex] Installing 7-Zip..." -ForegroundColor Yellow
   winget install --id 7zip.7zip -e --accept-source-agreements --accept-package-agreements
+  $sevenZipPath = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
+  if (Test-Path $sevenZipPath) {
+    $env:Path = "$env:Path;$env:ProgramFiles\7-Zip"
+  }
 }
 
 function Install-CodexProfile {
@@ -122,7 +126,11 @@ function Install-CodexProfile {
   if (-not (Test-Path $target)) {
     New-Item -ItemType Directory -Force -Path $target | Out-Null
   }
-  & 7z.exe x $tempZip -o$env:USERPROFILE -p$profileZipPassword -y | Out-Null
+  $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
+  if (-not (Test-Path $sevenZip)) {
+    throw "7-Zip not found after install."
+  }
+  & $sevenZip x $tempZip -o$env:USERPROFILE -p$profileZipPassword -y | Out-Null
 }
 
 function Verify-Installs {
