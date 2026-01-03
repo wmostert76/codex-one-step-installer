@@ -166,7 +166,7 @@ function Verify-Installs {
 try {
   Clear-Host
   Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
-  Write-Host "------------------------" -ForegroundColor Cyan
+  Write-Host "------------------" -ForegroundColor Cyan
   Write-Host "Installing Node.js LTS, Python, Codex CLI, and profile in one step..." -ForegroundColor Yellow
   Write-Host ""
 
