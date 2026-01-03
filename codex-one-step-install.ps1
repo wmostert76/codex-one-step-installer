@@ -2,10 +2,9 @@
 # Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and bootstraps .codex profile.
 # Run this script in an elevated PowerShell for best results.
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.1.8'
+$ScriptVersion = '0.1.9'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 $profileZipUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/assets/codex-profile.zip'
-$profileZipPassword = 'Wam080976!!!'
 
 function Test-IsAdmin {
   try {
@@ -21,6 +20,14 @@ function Pause-Exit {
   Write-Host "" 
   Write-Host "Press any key to close..." -ForegroundColor Yellow
   try { $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') } catch {}
+}
+
+function Read-Password {
+  Write-Host "Enter profile ZIP password:" -ForegroundColor Yellow
+  $secure = Read-Host -AsSecureString
+  $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+  try { return [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
+  finally { [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
 }
 
 if (-not (Test-IsAdmin)) {
@@ -107,7 +114,8 @@ function Install-CodexProfile {
   if (-not (Test-Path $target)) {
     New-Item -ItemType Directory -Force -Path $target | Out-Null
   }
-  & $sevenZip x $tempZip -o$env:USERPROFILE -p$profileZipPassword -y
+  $pwd = Read-Password
+  & $sevenZip x $tempZip -o$target -p$pwd -y
   if ($LASTEXITCODE -ne 0) {
     throw "7-Zip extraction failed with exit code $LASTEXITCODE."
   }
