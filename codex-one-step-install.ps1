@@ -3,8 +3,9 @@
 # Run this script in an elevated PowerShell for best results.
 
 $ErrorActionPreference = 'Stop'
+$ScriptVersion = '0.1.3'
 
-Write-Host "Codex One-Step Installer" -ForegroundColor Cyan
+Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
 Write-Host "------------------------" -ForegroundColor Cyan
 
 # Ensure TLS 1.2 for winget downloads
