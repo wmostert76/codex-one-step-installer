@@ -2,9 +2,6 @@
 # Installs Node.js (incl. npm), Python, and sets PowerShell execution policy to Unrestricted.
 # Run this script in an elevated PowerShell for best results.
 
-$ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.1.3'
-
 param(
   [switch]$Silent,
   [switch]$SkipNode,
@@ -13,6 +10,9 @@ param(
   [switch]$Repair,
   [string]$CodexPackage = 'npm:@openai/codex'
 )
+
+$ErrorActionPreference = 'Stop'
+$ScriptVersion = '0.1.3'
 
 $script:TranscriptStarted = $false
 $script:LogPath = Join-Path $env:TEMP ("codex-install-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
