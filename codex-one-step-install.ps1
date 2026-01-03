@@ -14,6 +14,7 @@ Write-Host "| |___ | |_| | |_| | |___ /  \\  | |  | |" -ForegroundColor Cyan
 Write-Host " \\____| \\___/|____/|_____/_/\\_\\ |_|  |_|" -ForegroundColor Cyan
 Write-Host "" -ForegroundColor Cyan
 Write-Host "       ONE-STEP INSTALLER" -ForegroundColor Cyan
+Write-Host "           v$ScriptVersion" -ForegroundColor Cyan
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 Write-Host "This will install Codex open in ONE step." -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Cyan
