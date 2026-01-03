@@ -1,0 +1,79 @@
+name: Bump installer version
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    if: "!contains(github.event.head_commit.message, 'chore: bump version')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Bump version in installer
+        shell: pwsh
+        run: |
+          $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
+          $messages = @()
+          if ($null -ne $event.commits) {
+            $messages = $event.commits.message
+          } elseif ($null -ne $event.head_commit.message) {
+            $messages = @($event.head_commit.message)
+          }
+          $messages = $messages | Where-Object { $_ }
+
+          $bump = 'patch'
+          if ($messages | Where-Object { $_ -match 'BREAKING CHANGE' -or $_ -match '^[a-zA-Z]+!:' }) {
+            $bump = 'major'
+          } elseif ($messages | Where-Object { $_ -match '^feat(\(.+\))?:' }) {
+            $bump = 'minor'
+          } elseif ($messages | Where-Object { $_ -match '^(fix|perf)(\(.+\))?:' }) {
+            $bump = 'patch'
+          }
+
+          $path = 'codex-one-step-install.ps1'
+          $text = Get-Content -Raw -Path $path
+          $m = [regex]::Match($text, "\$ScriptVersion\s*=\s*'(\d+)\.(\d+)\.(\d+)'")
+          if (-not $m.Success) {
+            Write-Host "Version string not found; skipping."
+            exit 0
+          }
+
+          $major = [int]$m.Groups[1].Value
+          $minor = [int]$m.Groups[2].Value
+          $patch = [int]$m.Groups[3].Value
+
+          switch ($bump) {
+            'major' { $major++; $minor = 0; $patch = 0 }
+            'minor' { $minor++; $patch = 0 }
+            default { $patch++ }
+          }
+
+          $newVersion = "$major.$minor.$patch"
+          $newText = [regex]::Replace(
+            $text,
+            "\$ScriptVersion\s*=\s*'\d+\.\d+\.\d+'",
+            "\$ScriptVersion = '$newVersion'"
+          )
+
+          if ($newText -eq $text) {
+            Write-Host "No change detected; skipping commit."
+            exit 0
+          }
+
+          Set-Content -Path $path -Value $newText -NoNewline
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add $path
+          git commit -m "chore: bump version to v$newVersion [skip ci]"
+          git push
