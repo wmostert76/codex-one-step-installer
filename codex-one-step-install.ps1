@@ -1,4 +1,4 @@
-﻿# Codex One-Step Installer
+# Codex One-Step Installer
 # Installs Node.js (incl. npm), Python, and sets PowerShell execution policy to Unrestricted.
 # Run this script in an elevated PowerShell for best results.
 
@@ -31,9 +31,14 @@ function Install-Node {
   winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
 }
 
+function Update-WingetSources {
+  Write-Host "[Codex] Updating winget sources..." -ForegroundColor Yellow
+  winget source update --accept-source-agreements | Out-Null
+}
+
 function Install-Python {
   Write-Host "[Codex] Installing Python..." -ForegroundColor Yellow
-  winget install --id Python.Python.3 -e --accept-source-agreements --accept-package-agreements
+  winget install --id Python.Python.3 -e --source winget --accept-source-agreements --accept-package-agreements
 }
 
 function Refresh-Path {
@@ -48,6 +53,7 @@ function Verify-Installs {
 }
 
 function Run-All {
+  Update-WingetSources
   Install-Node
   Install-Python
   Refresh-Path
@@ -55,18 +61,4 @@ function Run-All {
   Write-Host "[Codex] Done." -ForegroundColor Green
 }
 
-Write-Host ""
-Write-Host "Choose an option:" -ForegroundColor Cyan
-Write-Host "  [1] Install Node.js LTS"
-Write-Host "  [2] Install Python"
-Write-Host "  [3] Run all (default)"
-Write-Host "  [4] Exit"
-Write-Host ""
-
-$choice = Read-Host "Selection"
-switch ($choice) {
-  '1' { Install-Node; Refresh-Path; Verify-Installs }
-  '2' { Install-Python; Refresh-Path; Verify-Installs }
-  '4' { return }
-  default { Run-All }
-}
+Run-All

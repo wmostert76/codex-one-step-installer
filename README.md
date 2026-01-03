@@ -8,7 +8,7 @@
         ONE-STEP INSTALLER
 ```
 
-Install Codex tooling on Windows in one command. Clear prompts, repeatable installs, and a smooth first run.
+Install Codex tooling on Windows in one command. Single-flow install, repeatable setups, and a smooth first run.
 
 ## Quick start
 Short launcher (GitHub Pages):
@@ -36,7 +36,7 @@ This installer pulls and runs a PowerShell script that guides the setup of Codex
 
 ### What it does
 - Downloads the installer script and executes it in the current shell.
-- Guides you through required inputs with clear prompts.
+- Runs the full install flow (Node.js LTS + Python) automatically.
 - Supports pinned tag installs for stable, repeatable environments.
 
 ### Script summary
