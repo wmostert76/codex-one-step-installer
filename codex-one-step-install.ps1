@@ -6,13 +6,6 @@ $ErrorActionPreference = 'Stop'
 $ScriptVersion = '0.1.3'
 
 Clear-Host
-Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
-Write-Host "------------------------" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "This installer will update winget sources and install Node.js LTS + Python." -ForegroundColor Yellow
-Write-Host "Press any key to continue..." -ForegroundColor Yellow
-$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-Clear-Host
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  ____   ___  ____  _______  __  __            " -ForegroundColor Cyan
 Write-Host " / ___| / _ \\|  _ \\| ____\\ \\/ / |  \\/  |" -ForegroundColor Cyan
@@ -25,6 +18,9 @@ Write-Host "------------------------------------------------------------" -Foreg
 Write-Host "This will install Codex open in ONE step." -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
+Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "This installer will update winget sources and install Node.js LTS + Python." -ForegroundColor Yellow
 Write-Host "Press any key to start install..." -ForegroundColor Yellow
 $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
