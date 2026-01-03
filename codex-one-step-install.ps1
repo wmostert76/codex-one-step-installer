@@ -57,6 +57,18 @@ function Install-Node {
   winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements
 }
 
+function Update-Npm {
+  Write-Host "[Codex] Updating npm to latest..." -ForegroundColor Yellow
+  Refresh-Path
+  if (Get-Command npm.cmd -ErrorAction SilentlyContinue) {
+    npm.cmd i -g npm@latest
+  } elseif (Get-Command npm -ErrorAction SilentlyContinue) {
+    npm i -g npm@latest
+  } else {
+    Write-Host "[Codex] npm not found on PATH; skipping npm update." -ForegroundColor Yellow
+  }
+}
+
 function Install-Python {
   Write-Host "[Codex] Installing Python..." -ForegroundColor Yellow
   $pythonIds = @(
@@ -113,6 +125,7 @@ function Verify-Installs {
 
 Update-WingetSources
 Install-Node
+Update-Npm
 Install-Python
 Install-CodexCli
 Refresh-Path
