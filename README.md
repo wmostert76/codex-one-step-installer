@@ -48,13 +48,14 @@ This installer pulls and runs a PowerShell script that guides the setup of Codex
 
 ### Flags
 ```powershell
-irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -Silent
-irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -DryRun
-irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -SkipNode
-irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -SkipPython
-irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -Repair
-irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -CodexPackage npm:your-codex-package
-irm "https://wmostert76.github.io/Codex-OneStep-Installer/win" | iex -CodexPackage pip:your-codex-package
+$s = irm "https://wmostert76.github.io/Codex-OneStep-Installer/win"
+iex "& { $s } -Silent"
+iex "& { $s } -DryRun"
+iex "& { $s } -SkipNode"
+iex "& { $s } -SkipPython"
+iex "& { $s } -Repair"
+iex "& { $s } -CodexPackage npm:your-codex-package"
+iex "& { $s } -CodexPackage pip:your-codex-package"
 ```
 
 ### Script summary
