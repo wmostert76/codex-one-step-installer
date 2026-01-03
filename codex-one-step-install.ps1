@@ -2,7 +2,7 @@
 # Installs Node.js (incl. npm), Python, and Codex CLI (@openai/codex).
 # Run this script in an elevated PowerShell for best results.
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.1.3'
+$ScriptVersion = '0.1.4'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
