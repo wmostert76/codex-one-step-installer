@@ -284,8 +284,41 @@ function Run-All {
   Write-Host "[Codex] Done." -ForegroundColor Green
 }
 
-try {
+function Show-Menu {
+  Write-Host ""
+  Write-Host "Choose an option:" -ForegroundColor Cyan
+  Write-Host "  [1] Run all (default)"
+  Write-Host "  [2] Install Node.js LTS only"
+  Write-Host "  [3] Install Python only"
+  Write-Host "  [4] Install Codex CLI only"
+  Write-Host "  [5] Repair (force reinstall)"
+  Write-Host "  [6] Dry run (no changes)"
+  Write-Host "  [7] Exit"
+  Write-Host ""
+}
+
+function Run-Selected([string]$Choice) {
+  switch ($Choice) {
+    '2' { $script:SkipPython = $true; $script:CodexPackage = $null }
+    '3' { $script:SkipNode = $true; $script:CodexPackage = $null }
+    '4' { $script:SkipNode = $true; $script:SkipPython = $true }
+    '5' { $script:Repair = $true }
+    '6' { $script:DryRun = $true }
+    '7' { return }
+    default { }
+  }
   Run-All
+}
+
+try {
+  if (-not $Silent) {
+    Show-Menu
+    $choice = Read-Host "Selection"
+    if ($choice -eq '7') { return }
+    Run-Selected $choice
+  } else {
+    Run-All
+  }
 } finally {
   Stop-InstallLog
 }
