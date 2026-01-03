@@ -25,6 +25,8 @@ Write-Host "------------------------------------------------------------" -Foreg
 Write-Host "This will install Codex open in ONE step." -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
+Write-Host "Press any key to start install..." -ForegroundColor Yellow
+$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
 # Ensure TLS 1.2 for winget downloads
 try {
