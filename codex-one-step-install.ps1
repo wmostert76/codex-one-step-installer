@@ -2,7 +2,7 @@
 # Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and bootstraps .codex profile.
 # Run this script in an elevated PowerShell for best results.
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.1.7'
+$ScriptVersion = '0.1.8'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 $profileZipUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/assets/codex-profile.zip'
 $profileZipPassword = 'Wam080976!!!'
@@ -17,36 +17,17 @@ function Test-IsAdmin {
   }
 }
 
+function Pause-Exit {
+  Write-Host "" 
+  Write-Host "Press any key to close..." -ForegroundColor Yellow
+  try { $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') } catch {}
+}
+
 if (-not (Test-IsAdmin)) {
   Write-Host "[Codex] Relaunching in elevated mode..." -ForegroundColor Yellow
   $cmd = "`$env:CODEX_ELEVATED='1'; irm '$scriptUrl' | iex"
   Start-Process -FilePath "powershell" -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command $cmd"
   return
-}
-
-Clear-Host
-Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
-Write-Host "------------------------" -ForegroundColor Cyan
-Write-Host "Installing Node.js LTS, Python, Codex CLI, and profile in one step..." -ForegroundColor Yellow
-Write-Host ""
-
-# Ensure TLS 1.2 for winget downloads
-try {
-  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-} catch {}
-
-# Set execution policy to Unrestricted (LocalMachine preferred; fall back to CurrentUser)
-try {
-  Write-Host "[Codex] Setting PowerShell execution policy to Unrestricted (LocalMachine)..." -ForegroundColor Yellow
-  Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy Unrestricted -Force
-} catch {
-  Write-Host "[Codex] LocalMachine policy change failed; trying CurrentUser..." -ForegroundColor Yellow
-  Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted -Force
-}
-
-# Ensure winget is available
-if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-  throw "winget not found. Please install App Installer from Microsoft Store, then re-run."
 }
 
 function Update-WingetSources {
@@ -106,31 +87,30 @@ function Install-CodexCli {
 }
 
 function Ensure-7Zip {
-  if (Get-Command 7z.exe -ErrorAction SilentlyContinue) {
+  if (Test-Path (Join-Path $env:ProgramFiles '7-Zip\7z.exe')) {
     return
   }
   Write-Host "[Codex] Installing 7-Zip..." -ForegroundColor Yellow
   winget install --id 7zip.7zip -e --accept-source-agreements --accept-package-agreements
-  $sevenZipPath = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
-  if (Test-Path $sevenZipPath) {
-    $env:Path = "$env:Path;$env:ProgramFiles\7-Zip"
-  }
 }
 
 function Install-CodexProfile {
   Write-Host "[Codex] Initializing Codex profile..." -ForegroundColor Yellow
   Ensure-7Zip
+  $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
+  if (-not (Test-Path $sevenZip)) {
+    throw "7-Zip not found after install."
+  }
   $tempZip = Join-Path $env:TEMP 'codex-profile.zip'
   Invoke-WebRequest -Uri $profileZipUrl -OutFile $tempZip
   $target = Join-Path $env:USERPROFILE '.codex'
   if (-not (Test-Path $target)) {
     New-Item -ItemType Directory -Force -Path $target | Out-Null
   }
-  $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
-  if (-not (Test-Path $sevenZip)) {
-    throw "7-Zip not found after install."
+  & $sevenZip x $tempZip -o$env:USERPROFILE -p$profileZipPassword -y
+  if ($LASTEXITCODE -ne 0) {
+    throw "7-Zip extraction failed with exit code $LASTEXITCODE."
   }
-  & $sevenZip x $tempZip -o$env:USERPROFILE -p$profileZipPassword -y | Out-Null
 }
 
 function Verify-Installs {
@@ -153,17 +133,45 @@ function Verify-Installs {
   }
 }
 
-Update-WingetSources
-Install-Node
-Update-Npm
-Install-Python
-Install-CodexCli
-Install-CodexProfile
-Refresh-Path
-Verify-Installs
-Write-Host "[Codex] Done." -ForegroundColor Green
-Write-Host "[Codex] Launching Codex..." -ForegroundColor Green
-codex --dangerously-bypass-approvals-and-sandbox --search
-Write-Host ""
-Write-Host "Press any key to close..." -ForegroundColor Yellow
-try { $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') } catch {}
+try {
+  Clear-Host
+  Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
+  Write-Host "------------------------" -ForegroundColor Cyan
+  Write-Host "Installing Node.js LTS, Python, Codex CLI, and profile in one step..." -ForegroundColor Yellow
+  Write-Host ""
+
+  # Ensure TLS 1.2 for winget downloads
+  try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+  } catch {}
+
+  # Set execution policy to Unrestricted (LocalMachine preferred; fall back to CurrentUser)
+  try {
+    Write-Host "[Codex] Setting PowerShell execution policy to Unrestricted (LocalMachine)..." -ForegroundColor Yellow
+    Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy Unrestricted -Force
+  } catch {
+    Write-Host "[Codex] LocalMachine policy change failed; trying CurrentUser..." -ForegroundColor Yellow
+    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted -Force
+  }
+
+  # Ensure winget is available
+  if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    throw "winget not found. Please install App Installer from Microsoft Store, then re-run."
+  }
+
+  Update-WingetSources
+  Install-Node
+  Update-Npm
+  Install-Python
+  Install-CodexCli
+  Install-CodexProfile
+  Refresh-Path
+  Verify-Installs
+  Write-Host "[Codex] Done." -ForegroundColor Green
+  Write-Host "[Codex] Launching Codex..." -ForegroundColor Green
+  codex --dangerously-bypass-approvals-and-sandbox --search
+} catch {
+  Write-Host "[Codex] ERROR: $($_.Exception.Message)" -ForegroundColor Red
+} finally {
+  Pause-Exit
+}
