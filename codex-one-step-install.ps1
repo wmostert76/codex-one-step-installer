@@ -2,7 +2,7 @@
 # Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and bootstraps .codex profile.
 # Run this script in an elevated PowerShell for best results.
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.1.11'
+$ScriptVersion = '0.1.12'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 $profileZipUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/assets/codex-profile.zip'
 
@@ -32,6 +32,21 @@ if (-not (Test-IsAdmin)) {
   $cmd = "`$env:CODEX_ELEVATED='1'; irm '$scriptUrl' | iex"
   Start-Process -FilePath "powershell" -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command $cmd"
   return
+}
+
+function Set-ExecutionPolicySafe {
+  try {
+    Write-Host "[Codex] Setting PowerShell execution policy to Unrestricted (LocalMachine)..." -ForegroundColor Yellow
+    Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy Unrestricted -Force -ErrorAction Stop
+    return
+  } catch {
+    Write-Host "[Codex] LocalMachine policy change failed; trying CurrentUser..." -ForegroundColor Yellow
+  }
+  try {
+    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted -Force -ErrorAction Stop
+  } catch {
+    Write-Host "[Codex] Execution policy change blocked by system policy; continuing..." -ForegroundColor Yellow
+  }
 }
 
 function Update-WingetSources {
@@ -160,14 +175,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
   } catch {}
 
-  # Set execution policy to Unrestricted (LocalMachine preferred; fall back to CurrentUser)
-  try {
-    Write-Host "[Codex] Setting PowerShell execution policy to Unrestricted (LocalMachine)..." -ForegroundColor Yellow
-    Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy Unrestricted -Force
-  } catch {
-    Write-Host "[Codex] LocalMachine policy change failed; trying CurrentUser..." -ForegroundColor Yellow
-    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted -Force
-  }
+  Set-ExecutionPolicySafe
 
   # Ensure winget is available
   if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
