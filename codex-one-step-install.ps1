@@ -2,7 +2,7 @@
 # Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and bootstraps .codex profile.
 # Run this script in an elevated PowerShell for best results.
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.1.6'
+$ScriptVersion = '0.1.7'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 $profileZipUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/assets/codex-profile.zip'
 $profileZipPassword = 'Wam080976!!!'
@@ -164,3 +164,6 @@ Verify-Installs
 Write-Host "[Codex] Done." -ForegroundColor Green
 Write-Host "[Codex] Launching Codex..." -ForegroundColor Green
 codex --dangerously-bypass-approvals-and-sandbox --search
+Write-Host ""
+Write-Host "Press any key to close..." -ForegroundColor Yellow
+try { $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') } catch {}
