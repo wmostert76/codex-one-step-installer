@@ -8,7 +8,7 @@
         ONE-STEP INSTALLER
 ```
 
-Install Codex tooling on Windows in one command. Single-flow install, repeatable setups, and a smooth first run.
+Install Codex tooling on Windows in one command. One click runs the full install.
 
 ## Quick start
 Short launcher (GitHub Pages):
@@ -42,23 +42,9 @@ This installer pulls and runs a PowerShell script that guides the setup of Codex
 
 ### What it does
 - Downloads the installer script and executes it in the current shell.
-- Runs the full install flow (Node.js LTS + Python) automatically.
-- Installs Codex CLI via npm (`@openai/codex`) by default.
+- Runs the full install flow (Node.js LTS + Python + Codex CLI) automatically.
+- Elevates to Administrator if needed and continues.
 - Supports pinned tag installs for stable, repeatable environments.
-- Writes a log file to `%TEMP%` and prints the path.
-
-### Flags
-```powershell
-$s = irm "https://wmostert76.github.io/Codex-OneStep-Installer/win"
-iex "& { $s } -Silent"
-iex "& { $s } -DryRun"
-iex "& { $s } -SkipNode"
-iex "& { $s } -SkipPython"
-iex "& { $s } -Repair"
-iex "& { $s } -CodexPackage npm:your-codex-package"
-iex "& { $s } -CodexPackage pip:your-codex-package"
-iex "& { $s } -CodexPackage ''"  # disable Codex CLI install
-```
 
 ### Script summary
 - `codex-one-step-install.ps1` downloads the required tooling and runs the setup flow.
