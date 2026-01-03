@@ -38,7 +38,20 @@ function Update-WingetSources {
 
 function Install-Python {
   Write-Host "[Codex] Installing Python..." -ForegroundColor Yellow
-  winget install --id Python.Python.3 -e --source winget --accept-source-agreements --accept-package-agreements
+  $pythonIds = @(
+    'Python.Python.3.12',
+    'Python.Python.3.11',
+    'Python.Python.3'
+  )
+  foreach ($id in $pythonIds) {
+    try {
+      winget install --id $id -e --source winget --accept-source-agreements --accept-package-agreements
+      return
+    } catch {
+      Write-Host "[Codex] Python install failed for $id; trying next..." -ForegroundColor Yellow
+    }
+  }
+  throw "Python install failed for all known IDs."
 }
 
 function Refresh-Path {
@@ -49,7 +62,15 @@ function Verify-Installs {
   Write-Host "[Codex] Verifying installs..." -ForegroundColor Yellow
   node -v
   npm -v
-  python --version
+  try {
+    python --version
+  } catch {
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+      py -V
+    } else {
+      Write-Host "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases." -ForegroundColor Yellow
+    }
+  }
 }
 
 function Run-All {
