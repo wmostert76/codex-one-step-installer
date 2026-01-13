@@ -51,6 +51,14 @@ irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master
 irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/v1.0.0/codex-one-step-install.ps1" | iex
 ```
 
+## Uninstall
+```powershell
+irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" -OutFile codex-one-step-install.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\codex-one-step-install.ps1 -Uninstall
+```
+
+This removes Node.js, Python, 7-Zip, the Codex CLI (`@openai/codex`), and the `.codex` profile directory.
+
 ## FAQ
 **Is this safe to run?**
 Review the script and use pinned tags if you want a fixed version.

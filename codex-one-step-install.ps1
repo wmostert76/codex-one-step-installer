@@ -1,6 +1,9 @@
 # Codex One-Step Installer
 # Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and bootstraps .codex profile.
 # Run this script in an elevated PowerShell for best results.
+param(
+  [switch] $Uninstall
+)
 $ErrorActionPreference = 'Stop'
 $ScriptVersion = '0.2.1'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
@@ -323,6 +326,155 @@ function Ensure-7Zip {
   }
 }
 
+function Get-UninstallRegistryEntries {
+  param (
+    [Parameter(Mandatory)]
+    [string] $Pattern
+  )
+  $paths = @(
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+    'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
+    'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
+  )
+  $entries = @()
+  foreach ($path in $paths) {
+    if (-not (Test-Path $path)) {
+      continue
+    }
+    Get-ChildItem -Path $path -ErrorAction SilentlyContinue | ForEach-Object {
+      try {
+        $props = Get-ItemProperty -Path $_.PSPath -ErrorAction Stop
+      } catch {
+        continue
+      }
+      if ($props.DisplayName -and ($props.DisplayName -match $Pattern)) {
+        $entries += [PSCustomObject]@{
+          DisplayName = $props.DisplayName
+          UninstallString = $props.UninstallString
+        }
+      }
+    }
+  }
+  return $entries
+}
+
+function Run-ManualUninstall {
+  param (
+    [Parameter(Mandatory)]
+    [string] $Pattern,
+    [Parameter(Mandatory)]
+    [string] $FriendlyName
+  )
+  $entries = Get-UninstallRegistryEntries -Pattern $Pattern
+  if (-not $entries) {
+    Write-Host "[Codex] No $FriendlyName entries found; skipping." -ForegroundColor Yellow
+    return
+  }
+  foreach ($entry in $entries | Select-Object -Unique DisplayName) {
+    if (-not $entry.UninstallString) {
+      continue
+    }
+    Write-Host "[Codex] Uninstalling $FriendlyName ($($entry.DisplayName))..." -ForegroundColor Yellow
+    $guidMatch = [regex]::Match($entry.UninstallString, '\{[0-9A-Fa-f\-]{36}\}')
+    if ($guidMatch.Success) {
+      $exe = "msiexec.exe"
+      $args = "/x", $guidMatch.Value, "/qn", "/norestart"
+    } else {
+      $exe = "cmd.exe"
+      $args = "/c", $entry.UninstallString
+    }
+    try {
+      $process = Start-Process -FilePath $exe -ArgumentList $args -Wait -PassThru -ErrorAction Stop
+      if ($process.ExitCode -ne 0) {
+        Write-Host "[Codex] $FriendlyName uninstall returned code $($process.ExitCode)." -ForegroundColor Yellow
+      }
+    } catch {
+      Write-Host "[Codex] Failed to uninstall $FriendlyName ($($entry.DisplayName)): $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+  }
+}
+
+function Uninstall-Node {
+  Write-Host "[Codex] Removing Node.js..." -ForegroundColor Yellow
+  if (Test-WingetAvailable) {
+    try {
+      winget uninstall --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
+    } catch {
+      Write-Host "[Codex] winget refused to remove Node.js; falling back to registry-based uninstall." -ForegroundColor Yellow
+      Run-ManualUninstall -Pattern 'Node\.js' -FriendlyName 'Node.js'
+    }
+    return
+  }
+  Run-ManualUninstall -Pattern 'Node\.js' -FriendlyName 'Node.js'
+}
+
+function Uninstall-Python {
+  Write-Host "[Codex] Removing Python..." -ForegroundColor Yellow
+  $pythonIds = @(
+    'Python.Python.3.12',
+    'Python.Python.3.11',
+    'Python.Python.3'
+  )
+  if (Test-WingetAvailable) {
+    foreach ($id in $pythonIds) {
+      try {
+        winget uninstall --id $id -e --accept-source-agreements --accept-package-agreements
+        return
+      } catch {
+        Write-Host "[Codex] winget uninstall failed for $id; trying next." -ForegroundColor Yellow
+      }
+    }
+    Write-Host "[Codex] No Python uninstalls succeeded via winget; falling back to registry." -ForegroundColor Yellow
+  }
+  Run-ManualUninstall -Pattern '^Python 3' -FriendlyName 'Python 3.x'
+}
+
+function Uninstall-7Zip {
+  Write-Host "[Codex] Removing 7-Zip..." -ForegroundColor Yellow
+  if (Test-WingetAvailable) {
+    try {
+      winget uninstall --id 7zip.7zip -e --accept-source-agreements --accept-package-agreements
+    } catch {
+      Write-Host "[Codex] winget uninstall failed for 7-Zip; using registry fallback." -ForegroundColor Yellow
+      Run-ManualUninstall -Pattern '^7-Zip' -FriendlyName '7-Zip'
+    }
+    return
+  }
+  Run-ManualUninstall -Pattern '^7-Zip' -FriendlyName '7-Zip'
+}
+
+function Remove-CodexCli {
+  Write-Host "[Codex] Removing Codex CLI..." -ForegroundColor Yellow
+  Refresh-Path
+  if (Get-Command npm.cmd -ErrorAction SilentlyContinue) {
+    npm.cmd uninstall -g @openai/codex
+  } elseif (Get-Command npm -ErrorAction SilentlyContinue) {
+    npm uninstall -g @openai/codex
+  } else {
+    Write-Host "[Codex] npm not found; skipping Codex CLI uninstall." -ForegroundColor Yellow
+  }
+}
+
+function Remove-CodexProfile {
+  $target = Join-Path $env:USERPROFILE '.codex'
+  if (Test-Path $target) {
+    Write-Host "[Codex] Removing Codex profile at $target..." -ForegroundColor Yellow
+    Remove-Item -Recurse -Force -Path $target
+  } else {
+    Write-Host "[Codex] No Codex profile directory found; skipping." -ForegroundColor Yellow
+  }
+}
+
+function Run-UninstallFlow {
+  Write-Host "[Codex] Running uninstall sequence..." -ForegroundColor Cyan
+  Remove-CodexCli
+  Uninstall-Node
+  Uninstall-Python
+  Uninstall-7Zip
+  Remove-CodexProfile
+  Write-Host "[Codex] Uninstall complete." -ForegroundColor Green
+}
+
 function Install-CodexProfile {
   Write-Host "[Codex] Initializing Codex profile..." -ForegroundColor Yellow
   Ensure-7Zip
@@ -371,6 +523,12 @@ function Verify-Installs {
   } else {
     Write-Host "Codex CLI was not found on PATH." -ForegroundColor Yellow
   }
+}
+
+if ($Uninstall) {
+  Run-UninstallFlow
+  Pause-Exit
+  return
 }
 
 try {
