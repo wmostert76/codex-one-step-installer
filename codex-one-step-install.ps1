@@ -49,14 +49,136 @@ function Set-ExecutionPolicySafe {
   }
 }
 
+$script:CodexWingetAvailable = $null
+$script:CodexWingetChecked = $false
+
+function Test-WingetAvailable {
+  if (-not $script:CodexWingetChecked) {
+    try {
+      Get-Command winget -ErrorAction Stop | Out-Null
+      $script:CodexWingetAvailable = $true
+    } catch {
+      $script:CodexWingetAvailable = $false
+    }
+    $script:CodexWingetChecked = $true
+  }
+  return $script:CodexWingetAvailable
+}
+
+function Download-ToTemp {
+  param (
+    [Parameter(Mandatory)]
+    [string] $Url,
+    [string] $FileName
+  )
+  try {
+    $name = if ($FileName) { $FileName } else { [System.IO.Path]::GetFileName($Url) }
+    $target = Join-Path $env:TEMP $name
+    if (Test-Path $target) {
+      Remove-Item -Force $target
+    }
+    Write-Host "[Codex] Downloading $name..." -ForegroundColor Yellow
+    Invoke-WebRequest -Uri $Url -OutFile $target
+    return $target
+  } catch {
+    throw "Failed to download $Url: $($_.Exception.Message)"
+  }
+}
+
+function Get-LatestNodeLtsRelease {
+  try {
+    $index = Invoke-RestMethod 'https://nodejs.org/dist/index.json'
+  } catch {
+    throw "Failed to fetch Node.js release metadata: $($_.Exception.Message)"
+  }
+  $ltsRelease = $index | Where-Object { $_.lts } | Select-Object -First 1
+  if (-not $ltsRelease) {
+    throw "Could not determine the latest Node.js LTS release."
+  }
+  return $ltsRelease
+}
+
+function Install-NodeManual {
+  $release = Get-LatestNodeLtsRelease
+  $installerFile = "node-$($release.version)-x64.msi"
+  $url = "https://nodejs.org/dist/$($release.version)/$installerFile"
+  $installer = Download-ToTemp -Url $url -FileName $installerFile
+  Write-Host "[Codex] Running Node.js installer..." -ForegroundColor Yellow
+  try {
+    $process = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i", $installer, "/qn", "/norestart", "ADDLOCAL=ALL" -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+      throw "Node.js installer failed with exit code $($process.ExitCode)."
+    }
+  } finally {
+    if (Test-Path $installer) {
+      Remove-Item -Force $installer -ErrorAction SilentlyContinue
+    }
+  }
+}
+
+function Get-LatestPythonRelease {
+  try {
+    $page = Invoke-WebRequest 'https://www.python.org/ftp/python/'
+  } catch {
+    throw "Failed to fetch Python releases page: $($_.Exception.Message)"
+  }
+  $matches = [regex]::Matches($page.Content, 'href="(?<version>\d+\.\d+\.\d+)/"')
+  $versions = $matches | ForEach-Object { $_.Groups['version'].Value } | Where-Object { $_ -match '^3\.' } | Select-Object -Unique
+  if (-not $versions) {
+    throw "Could not parse Python release versions from the downloads page."
+  }
+  return $versions | Sort-Object {[Version]$_} -Descending | Select-Object -First 1
+}
+
+function Install-PythonManual {
+  $version = Get-LatestPythonRelease
+  $installerFile = "python-$version-amd64.exe"
+  $url = "https://www.python.org/ftp/python/$version/$installerFile"
+  $installer = Download-ToTemp -Url $url -FileName $installerFile
+  Write-Host "[Codex] Running Python installer..." -ForegroundColor Yellow
+  $args = "/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1", "Include_test=0"
+  try {
+    $process = Start-Process -FilePath $installer -ArgumentList $args -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+      throw "Python installer failed with exit code $($process.ExitCode)."
+    }
+  } finally {
+    if (Test-Path $installer) {
+      Remove-Item -Force $installer -ErrorAction SilentlyContinue
+    }
+  }
+}
+
+function Get-Latest7ZipInstaller {
+  try {
+    $page = Invoke-WebRequest 'https://www.7-zip.org/'
+  } catch {
+    throw "Failed to download 7-Zip landing page: $($_.Exception.Message)"
+  }
+  $match = [regex]::Match($page.Content, 'href="(?<path>/a/7z\d+-x64\.exe)"')
+  if (-not $match.Success) {
+    throw "Could not determine the 7-Zip installer URL."
+  }
+  return "https://www.7-zip.org$($match.Groups['path'].Value)"
+}
+
 function Update-WingetSources {
-  Write-Host "[Codex] Updating winget sources..." -ForegroundColor Yellow
+  if (-not (Test-WingetAvailable)) {
+    Write-Host "[Codex] winget not available; skipping source update." -ForegroundColor Yellow
+    return
+  }
+  Write-Host "[Codex] Updating winget sources..." -ForegroundColor Yellow       
   winget source update --accept-source-agreements | Out-Null
 }
 
 function Install-Node {
-  Write-Host "[Codex] Installing Node.js LTS..." -ForegroundColor Yellow
-  winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements
+  Write-Host "[Codex] Installing Node.js LTS..." -ForegroundColor Yellow        
+  if (Test-WingetAvailable) {
+    winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements
+  } else {
+    Write-Host "[Codex] winget missing; installing Node.js via the official MSI." -ForegroundColor Yellow
+    Install-NodeManual
+  }
 }
 
 function Update-Npm {
@@ -73,6 +195,11 @@ function Update-Npm {
 
 function Install-Python {
   Write-Host "[Codex] Installing Python..." -ForegroundColor Yellow
+  if (-not (Test-WingetAvailable)) {
+    Write-Host "[Codex] winget missing; installing Python via the official installer." -ForegroundColor Yellow
+    Install-PythonManual
+    return
+  }
   $pythonIds = @(
     'Python.Python.3.12',
     'Python.Python.3.11',
@@ -106,11 +233,31 @@ function Install-CodexCli {
 }
 
 function Ensure-7Zip {
-  if (Test-Path (Join-Path $env:ProgramFiles '7-Zip\7z.exe')) {
+  $sevenZipPath = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
+  if (Test-Path $sevenZipPath) {
     return
   }
   Write-Host "[Codex] Installing 7-Zip..." -ForegroundColor Yellow
-  winget install --id 7zip.7zip -e --accept-source-agreements --accept-package-agreements
+  if (Test-WingetAvailable) {
+    winget install --id 7zip.7zip -e --accept-source-agreements --accept-package-agreements
+    return
+  }
+  $url = Get-Latest7ZipInstaller
+  $installer = Download-ToTemp -Url $url
+  Write-Host "[Codex] Running 7-Zip installer..." -ForegroundColor Yellow
+  try {
+    $process = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+      throw "7-Zip installer failed with exit code $($process.ExitCode)."
+    }
+  } finally {
+    if (Test-Path $installer) {
+      Remove-Item -Force $installer -ErrorAction SilentlyContinue
+    }
+  }
+  if (-not (Test-Path $sevenZipPath)) {
+    throw "7-Zip installation completed but 7z.exe was not found."
+  }
 }
 
 function Install-CodexProfile {
@@ -177,12 +324,12 @@ try {
 
   Set-ExecutionPolicySafe
 
-  # Ensure winget is available
-  if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    throw "winget not found. Please install App Installer from Microsoft Store, then re-run."
+  # Prepare winget sources if available
+  if (Test-WingetAvailable) {
+    Update-WingetSources
+  } else {
+    Write-Host "[Codex] winget not found; switching to direct installers for Node.js, Python, and 7-Zip." -ForegroundColor Yellow
   }
-
-  Update-WingetSources
   Install-Node
   Update-Npm
   Install-Python
