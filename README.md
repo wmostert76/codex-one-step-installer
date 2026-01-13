@@ -57,7 +57,7 @@ irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master
 powershell -NoProfile -ExecutionPolicy Bypass -File .\codex-one-step-install.ps1 -Uninstall
 ```
 
-This removes Node.js, Python, the Codex CLI (`@openai/codex`), and the `.codex` profile directory.
+This removes Node.js, Python, the Codex CLI (`@openai/codex`), and the `.codex` profile directory, then deletes the matching uninstall registry entries so the programs no longer show up in Settings > Apps & features.
 
 ## FAQ
 **Is this safe to run?**

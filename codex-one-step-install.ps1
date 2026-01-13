@@ -304,11 +304,25 @@ function Get-UninstallRegistryEntries {
         $entries += [PSCustomObject]@{
           DisplayName = $props.DisplayName
           UninstallString = $props.UninstallString
+          RegistryPath = $_.PSPath
         }
       }
     }
   }
   return $entries
+}
+
+function Remove-UninstallRegistryEntry {
+  param (
+    [Parameter(Mandatory)]
+    [string] $RegistryPath
+  )
+  try {
+    Remove-Item -LiteralPath $RegistryPath -Force -Recurse -ErrorAction Stop
+    Write-Host "[Codex] Removed uninstall registry entry at $RegistryPath." -ForegroundColor Yellow
+  } catch {
+    Write-Host "[Codex] Failed to remove registry entry $RegistryPath: $($_.Exception.Message)" -ForegroundColor Yellow
+  }
 }
 
 function Run-ManualUninstall {
@@ -323,7 +337,7 @@ function Run-ManualUninstall {
     Write-Host "[Codex] No $FriendlyName entries found; skipping." -ForegroundColor Yellow
     return
   }
-  foreach ($entry in $entries | Select-Object -Unique DisplayName) {
+  foreach ($entry in $entries | Sort-Object DisplayName -Unique) {
     if (-not $entry.UninstallString) {
       continue
     }
@@ -343,6 +357,9 @@ function Run-ManualUninstall {
       }
     } catch {
       Write-Host "[Codex] Failed to uninstall $FriendlyName ($($entry.DisplayName)): $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+    if ($entry.RegistryPath) {
+      Remove-UninstallRegistryEntry -RegistryPath $entry.RegistryPath
     }
   }
 }
