@@ -321,7 +321,7 @@ function Remove-UninstallRegistryEntry {
     Remove-Item -LiteralPath $RegistryPath -Force -Recurse -ErrorAction Stop
     Write-Host "[Codex] Removed uninstall registry entry at $RegistryPath." -ForegroundColor Yellow
   } catch {
-    Write-Host "[Codex] Failed to remove registry entry ${RegistryPath}: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host ("[Codex] Failed to remove registry entry {0}: {1}" -f $RegistryPath, $_.Exception.Message) -ForegroundColor Yellow
   }
 }
 
