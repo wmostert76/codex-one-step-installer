@@ -1,5 +1,5 @@
 # Codex One-Step Installer
-# Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and bootstraps .codex profile.
+# Installs Node.js (incl. npm), Python, and Codex CLI (@openai/codex).
 # Run this script in an elevated PowerShell for best results.
 param(
   [switch] $Uninstall
@@ -7,7 +7,6 @@ param(
 $ErrorActionPreference = 'Stop'
 $ScriptVersion = '0.2.1'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
-$profileZipUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/assets/codex-profile.zip'
 
 function Test-IsAdmin {
   try {
@@ -23,11 +22,6 @@ function Pause-Exit {
   Write-Host "" 
   Write-Host "Press any key to close..." -ForegroundColor Yellow
   try { $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') } catch {}
-}
-
-function Read-Password {
-  Write-Host "Enter profile ZIP password (exact, no trimming):" -ForegroundColor Yellow
-  return (Read-Host)
 }
 
 if (-not (Test-IsAdmin)) {
@@ -215,24 +209,15 @@ function Install-PythonManual {
   }
 }
 
-function Get-Latest7ZipInstaller {
-  try {
-    $page = Invoke-WebRequestCompat -Params @{ Uri = 'https://www.7-zip.org/' }
-  } catch {
-    throw "Failed to download 7-Zip landing page: $($_.Exception.Message)"
-  }
-  $match = [regex]::Match($page.Content, 'href="(?<path>/a/7z\d+-x64\.exe)"')
-  if (-not $match.Success) {
-    throw "Could not determine the 7-Zip installer URL."
-  }
-  return "https://www.7-zip.org$($match.Groups['path'].Value)"
-}
-
 function Update-WingetSources {
   if (-not (Test-WingetAvailable)) {
     Write-Host "[Codex] winget not available; skipping source update." -ForegroundColor Yellow
     return
   }
+  Write-Host "[Codex] Updating winget sources..." -ForegroundColor Yellow
+  winget source update --accept-source-agreements | Out-Null
+}
+
   Write-Host "[Codex] Updating winget sources..." -ForegroundColor Yellow       
   winget source update --accept-source-agreements | Out-Null
 }
@@ -295,34 +280,6 @@ function Install-CodexCli {
     npm i -g @openai/codex
   } else {
     throw "npm not found on PATH after Node.js install. Please open a new terminal and re-run."
-  }
-}
-
-function Ensure-7Zip {
-  $sevenZipPath = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
-  if (Test-Path $sevenZipPath) {
-    return
-  }
-  Write-Host "[Codex] Installing 7-Zip..." -ForegroundColor Yellow
-  if (Test-WingetAvailable) {
-    winget install --id 7zip.7zip -e --accept-source-agreements --accept-package-agreements
-    return
-  }
-  $url = Get-Latest7ZipInstaller
-  $installer = Download-ToTemp -Url $url
-  Write-Host "[Codex] Running 7-Zip installer..." -ForegroundColor Yellow
-  try {
-    $process = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru
-    if ($process.ExitCode -ne 0) {
-      throw "7-Zip installer failed with exit code $($process.ExitCode)."
-    }
-  } finally {
-    if (Test-Path $installer) {
-      Remove-Item -Force $installer -ErrorAction SilentlyContinue
-    }
-  }
-  if (-not (Test-Path $sevenZipPath)) {
-    throw "7-Zip installation completed but 7z.exe was not found."
   }
 }
 
@@ -429,20 +386,6 @@ function Uninstall-Python {
   Run-ManualUninstall -Pattern '^Python 3' -FriendlyName 'Python 3.x'
 }
 
-function Uninstall-7Zip {
-  Write-Host "[Codex] Removing 7-Zip..." -ForegroundColor Yellow
-  if (Test-WingetAvailable) {
-    try {
-      winget uninstall --id 7zip.7zip -e --accept-source-agreements --accept-package-agreements
-    } catch {
-      Write-Host "[Codex] winget uninstall failed for 7-Zip; using registry fallback." -ForegroundColor Yellow
-      Run-ManualUninstall -Pattern '^7-Zip' -FriendlyName '7-Zip'
-    }
-    return
-  }
-  Run-ManualUninstall -Pattern '^7-Zip' -FriendlyName '7-Zip'
-}
-
 function Remove-CodexCli {
   Write-Host "[Codex] Removing Codex CLI..." -ForegroundColor Yellow
   Refresh-Path
@@ -470,39 +413,8 @@ function Run-UninstallFlow {
   Remove-CodexCli
   Uninstall-Node
   Uninstall-Python
-  Uninstall-7Zip
   Remove-CodexProfile
   Write-Host "[Codex] Uninstall complete." -ForegroundColor Green
-}
-
-function Install-CodexProfile {
-  Write-Host "[Codex] Initializing Codex profile..." -ForegroundColor Yellow
-  Ensure-7Zip
-  $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
-  if (-not (Test-Path $sevenZip)) {
-    throw "7-Zip not found after install."
-  }
-  $tempZip = Join-Path $env:TEMP 'codex-profile.zip'
-  Invoke-WebRequestCompat -Params @{ Uri = $profileZipUrl; OutFile = $tempZip }
-  $target = Join-Path $env:USERPROFILE '.codex'
-  if (-not (Test-Path $target)) {
-    New-Item -ItemType Directory -Force -Path $target | Out-Null
-  }
-  $pwd = Read-Password
-  $tempDir = Join-Path $env:TEMP ("codex-profile-test-{0}" -f ([Guid]::NewGuid().ToString('N')))
-  New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
-  $argsTest = @('x', $tempZip, "-o$tempDir", "-p$pwd", '-y')
-  & $sevenZip @argsTest
-  if ($LASTEXITCODE -ne 0) {
-    try { Remove-Item -Recurse -Force $tempDir } catch {}
-    throw "7-Zip extraction failed with exit code $LASTEXITCODE."
-  }
-  try { Remove-Item -Recurse -Force $tempDir } catch {}
-  $argsFinal = @('x', $tempZip, "-o$target", "-p$pwd", '-y')
-  & $sevenZip @argsFinal
-  if ($LASTEXITCODE -ne 0) {
-    throw "7-Zip extraction to profile failed with exit code $LASTEXITCODE."
-  }
 }
 
 function Verify-Installs {
@@ -535,7 +447,7 @@ try {
   Clear-Host
   Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
   Write-Host "------------------" -ForegroundColor Cyan
-  Write-Host "Installing Node.js LTS, Python, Codex CLI, and profile in one step..." -ForegroundColor Yellow
+  Write-Host "Installing Node.js LTS, Python, and Codex CLI in one step..." -ForegroundColor Yellow
   Write-Host ""
 
   # Ensure TLS 1.2 for winget downloads
@@ -549,13 +461,12 @@ try {
   if (Test-WingetAvailable) {
     Update-WingetSources
   } else {
-    Write-Host "[Codex] winget not found; switching to direct installers for Node.js, Python, and 7-Zip." -ForegroundColor Yellow
+    Write-Host "[Codex] winget not found; switching to direct installers for Node.js and Python." -ForegroundColor Yellow
   }
   Install-Node
   Update-Npm
   Install-Python
   Install-CodexCli
-  Install-CodexProfile
   Refresh-Path
   Verify-Installs
   Write-Host "[Codex] Done." -ForegroundColor Green

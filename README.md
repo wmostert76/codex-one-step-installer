@@ -26,7 +26,7 @@ irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/v1.0.0
 This installer pulls and runs a PowerShell script that guides the setup of Codex tooling on Windows.
 
 ### Winget-free environments
-When `winget` is unavailable (for example on Server SKUs without App Installer), the script now downloads the official Node.js, Python, and 7-Zip installers directly and installs them silently, so the same installer still works even without the Windows Package Manager.
+When `winget` is unavailable (for example on Server SKUs without App Installer), the script now downloads the official Node.js and Python installers directly and installs them silently, so the same installer still works even without the Windows Package Manager.
 
 ### What it does
 - Downloads the installer script and executes it in the current shell.
@@ -57,7 +57,7 @@ irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master
 powershell -NoProfile -ExecutionPolicy Bypass -File .\codex-one-step-install.ps1 -Uninstall
 ```
 
-This removes Node.js, Python, 7-Zip, the Codex CLI (`@openai/codex`), and the `.codex` profile directory.
+This removes Node.js, Python, the Codex CLI (`@openai/codex`), and the `.codex` profile directory.
 
 ## FAQ
 **Is this safe to run?**
