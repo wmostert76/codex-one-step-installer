@@ -218,10 +218,6 @@ function Update-WingetSources {
   winget source update --accept-source-agreements | Out-Null
 }
 
-  Write-Host "[Codex] Updating winget sources..." -ForegroundColor Yellow       
-  winget source update --accept-source-agreements | Out-Null
-}
-
 function Install-Node {
   Write-Host "[Codex] Installing Node.js LTS..." -ForegroundColor Yellow        
   if (Test-WingetAvailable) {
