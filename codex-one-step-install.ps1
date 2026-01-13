@@ -97,6 +97,19 @@ function Download-ToTemp {
   }
 }
 
+function Test-UrlExists {
+  param (
+    [Parameter(Mandatory)]
+    [string] $Url
+  )
+  try {
+    Invoke-WebRequestCompat -Params @{ Uri = $Url; Method = 'Head' } | Out-Null
+    return $true
+  } catch {
+    return $false
+  }
+}
+
 function Get-LatestNodeLtsRelease {
   try {
     $index = Invoke-RestMethod 'https://nodejs.org/dist/index.json'
@@ -128,6 +141,15 @@ function Install-NodeManual {
   }
 }
 
+function Get-PythonInstallerUrl {
+  param (
+    [Parameter(Mandatory)]
+    [Version] $Version
+  )
+  $verString = $Version.ToString()
+  return "https://www.python.org/ftp/python/$verString/python-$verString-amd64.exe"
+}
+
 function Get-LatestPythonRelease {
   try {
     $releases = Invoke-RestMethod 'https://www.python.org/api/v2/downloads/release/?is_published=true'
@@ -155,18 +177,26 @@ function Get-LatestPythonRelease {
   if (-not $candidates) {
     throw "Could not parse Python release metadata."
   }
-  $latest = $candidates | Sort-Object -Property Version -Descending | Select-Object -First 1
-  return [PSCustomObject]@{
-    Version = $latest.Version
-    Release = $latest.Release
+  $sorted = $candidates | Sort-Object -Property Version -Descending
+  foreach ($candidate in $sorted) {
+    $installerUrl = Get-PythonInstallerUrl -Version $candidate.Version
+    if (Test-UrlExists -Url $installerUrl) {
+      return [PSCustomObject]@{
+        Version = $candidate.Version
+        Release = $candidate.Release
+        InstallerUrl = $installerUrl
+      }
+    } else {
+      Write-Host "[Codex] Python installer for version $($candidate.Version) missing; trying next release..." -ForegroundColor Yellow
+    }
   }
+  throw "Could not find a downloadable Python installer."
 }
 
 function Install-PythonManual {
   $pythonMeta = Get-LatestPythonRelease
-  $version = $pythonMeta.Version.ToString()
-  $installerFile = "python-$version-amd64.exe"
-  $url = "https://www.python.org/ftp/python/$version/$installerFile"
+  $url = $pythonMeta.InstallerUrl
+  $installerFile = [System.IO.Path]::GetFileName($url)
   $installer = Download-ToTemp -Url $url -FileName $installerFile
   Write-Host "[Codex] Running Python installer..." -ForegroundColor Yellow
   $args = "/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1", "Include_test=0"
