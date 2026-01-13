@@ -81,7 +81,7 @@ function Download-ToTemp {
     Invoke-WebRequest -Uri $Url -OutFile $target
     return $target
   } catch {
-    throw "Failed to download $Url: $($_.Exception.Message)"
+    throw "Failed to download ${Url}: $($_.Exception.Message)"
   }
 }
 
