@@ -65,6 +65,18 @@ function Test-WingetAvailable {
   return $script:CodexWingetAvailable
 }
 
+function Invoke-WebRequestCompat {
+  param (
+    [Parameter(Mandatory)]
+    [hashtable]
+    $Params
+  )
+  if ($PSVersionTable.PSVersion.Major -lt 6) {
+    $Params.UseBasicParsing = $true
+  }
+  Invoke-WebRequest @Params
+}
+
 function Download-ToTemp {
   param (
     [Parameter(Mandatory)]
@@ -78,7 +90,7 @@ function Download-ToTemp {
       Remove-Item -Force $target
     }
     Write-Host "[Codex] Downloading $name..." -ForegroundColor Yellow
-    Invoke-WebRequest -Uri $Url -OutFile $target
+    Invoke-WebRequestCompat -Params @{ Uri = $Url; OutFile = $target }
     return $target
   } catch {
     throw "Failed to download ${Url}: $($_.Exception.Message)"
@@ -118,20 +130,41 @@ function Install-NodeManual {
 
 function Get-LatestPythonRelease {
   try {
-    $page = Invoke-WebRequest 'https://www.python.org/ftp/python/'
+    $releases = Invoke-RestMethod 'https://www.python.org/api/v2/downloads/release/?is_published=true'
   } catch {
-    throw "Failed to fetch Python releases page: $($_.Exception.Message)"
+    throw "Failed to fetch Python release metadata: $($_.Exception.Message)"
   }
-  $matches = [regex]::Matches($page.Content, 'href="(?<version>\d+\.\d+\.\d+)/"')
-  $versions = $matches | ForEach-Object { $_.Groups['version'].Value } | Where-Object { $_ -match '^3\.' } | Select-Object -Unique
-  if (-not $versions) {
-    throw "Could not parse Python release versions from the downloads page."
+  $candidates = @()
+  foreach ($release in $releases) {
+    if (-not $release.name.StartsWith('Python ')) {
+      continue
+    }
+    $match = [regex]::Match($release.name, 'Python (?<version>\d+\.\d+\.\d+)')
+    if (-not $match.Success) {
+      continue
+    }
+    if ($release.pre_release) {
+      continue
+    }
+    $version = [Version]$match.Groups['version'].Value
+    $candidates += [PSCustomObject]@{
+      Version = $version
+      Release = $release
+    }
   }
-  return $versions | Sort-Object {[Version]$_} -Descending | Select-Object -First 1
+  if (-not $candidates) {
+    throw "Could not parse Python release metadata."
+  }
+  $latest = $candidates | Sort-Object -Property Version -Descending | Select-Object -First 1
+  return [PSCustomObject]@{
+    Version = $latest.Version
+    Release = $latest.Release
+  }
 }
 
 function Install-PythonManual {
-  $version = Get-LatestPythonRelease
+  $pythonMeta = Get-LatestPythonRelease
+  $version = $pythonMeta.Version.ToString()
   $installerFile = "python-$version-amd64.exe"
   $url = "https://www.python.org/ftp/python/$version/$installerFile"
   $installer = Download-ToTemp -Url $url -FileName $installerFile
@@ -151,7 +184,7 @@ function Install-PythonManual {
 
 function Get-Latest7ZipInstaller {
   try {
-    $page = Invoke-WebRequest 'https://www.7-zip.org/'
+    $page = Invoke-WebRequestCompat -Params @{ Uri = 'https://www.7-zip.org/' }
   } catch {
     throw "Failed to download 7-Zip landing page: $($_.Exception.Message)"
   }
@@ -268,7 +301,7 @@ function Install-CodexProfile {
     throw "7-Zip not found after install."
   }
   $tempZip = Join-Path $env:TEMP 'codex-profile.zip'
-  Invoke-WebRequest -Uri $profileZipUrl -OutFile $tempZip
+  Invoke-WebRequestCompat -Params @{ Uri = $profileZipUrl; OutFile = $tempZip }
   $target = Join-Path $env:USERPROFILE '.codex'
   if (-not (Test-Path $target)) {
     New-Item -ItemType Directory -Force -Path $target | Out-Null
