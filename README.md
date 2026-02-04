@@ -1,73 +1,69 @@
+# 🚀 Codex OneStep Installer
+
+> One-click installer for Codex tooling on Windows | Node.js + Python + Codex CLI | Zero configuration required
+
 ```
  ██████╗ ██████╗ ██████╗ ███████╗██╗  ██╗
 ██╔════╝██╔═══██╗██╔══██╗██╔════╝╚██╗██╔╝
-██║     ██║   ██║██║  ██║█████╗   ╚███╔╝ 
-██║     ██║   ██║██║  ██║██╔══╝   ██╔██╗ 
+██║     ██║   ██║██║  ██║█████╗   ╚███╔╝
+██║     ██║   ██║██║  ██║██╔══╝   ██╔██╗
 ╚██████╗╚██████╔╝██████╔╝███████╗██╔╝ ██╗
  ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
         ONE-STEP INSTALLER
 ```
 
-Install Codex tooling on Windows in one command. One click runs the full install.
+## ✨ Features
 
-## Quick start
-Direct raw script (latest):
+- **One Command Install** - Volledige Codex setup in één PowerShell commando
+- **Auto Elevation** - Vraagt automatisch Administrator rechten indien nodig
+- **Winget-free Support** - Werkt ook op servers zonder Windows Package Manager
+- **Pinned Versions** - Gebruik tags voor stabiele, herhaalbare installaties
+- **Uninstall Support** - Volledige verwijdering met `-Uninstall` flag
+
+## 🚀 Quick Start
+
+### Installatie (Latest)
 ```powershell
 irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" | iex
 ```
 
-Pinned to a tag (example):
+### Installatie (Pinned Version)
 ```powershell
 irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/v1.0.0/codex-one-step-install.ps1" | iex
 ```
----
 
-## Technical details (engineering tone)
-This installer pulls and runs a PowerShell script that guides the setup of Codex tooling on Windows.
+## 📦 Wat wordt geïnstalleerd?
 
-### Winget-free environments
-When `winget` is unavailable (for example on Server SKUs without App Installer), the script now downloads the official Node.js and Python installers directly and installs them silently, so the same installer still works even without the Windows Package Manager.
+| Component | Beschrijving |
+|-----------|--------------|
+| **Node.js LTS** | JavaScript runtime |
+| **Python** | Python programming language |
+| **Codex CLI** | OpenAI's AI coding assistant |
 
-### What it does
-- Downloads the installer script and executes it in the current shell.
-- Runs the full install flow (Node.js LTS + Python + Codex CLI) automatically.  
-- Elevates to Administrator if needed and continues.
-- Supports pinned tag installs for stable, repeatable environments.
+## 🗑️ Uninstall
 
-### Script summary
-- `codex-one-step-install.ps1` downloads the required tooling and runs the setup flow.
-- The raw GitHub URL targets a specific branch or tag for stability.
-
-### Safety notes
-- Review the script before running if you prefer.
-- Use the pinned tag for CI or provisioning to avoid surprises.
-
----
-
-## Minimal (just the commands)
-
-```powershell
-irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" | iex
-irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/v1.0.0/codex-one-step-install.ps1" | iex
-```
-
-## Uninstall
 ```powershell
 irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" -OutFile codex-one-step-install.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\codex-one-step-install.ps1 -Uninstall
 ```
 
-This removes Node.js, Python, the Codex CLI (`@openai/codex`), and the `.codex` profile directory, then deletes the matching uninstall registry entries so the programs no longer show up in Settings > Apps & features.
+Verwijdert Node.js, Python, Codex CLI en `.codex` profile directory.
 
-## FAQ
-**Is this safe to run?**
-Review the script and use pinned tags if you want a fixed version.
+## ❓ FAQ
 
-**What does it install?**
-Codex tooling for Windows, configured for a smooth first run.
+| Vraag | Antwoord |
+|-------|----------|
+| **Is dit veilig?** | Review de script en gebruik pinned tags voor vaste versies |
+| **Wat installeert het?** | Codex tooling voor Windows, geconfigureerd voor eerste gebruik |
+| **Kan ik dit automatiseren?** | Ja, gebruik pinned tags in CI/provisioning scripts |
 
-**Can I automate this?**
-Yes. Use the pinned tag in CI or provisioning scripts to avoid surprises.
+## 🛠️ Technische Details
 
-## Contributing
-PRs and issues are welcome. If you propose changes to the installer flow, include the rationale and any environment assumptions.
+- PowerShell script met automatische privilege escalatie
+- Ondersteunt zowel Winget als directe installer downloads
+- Werkt op Windows 10/11 en Windows Server
+
+## 🤝 Contributing
+
+PRs en issues zijn welkom. Bij wijzigingen aan de installer flow, beschrijf de rationale en omgevingsaannames.
+
