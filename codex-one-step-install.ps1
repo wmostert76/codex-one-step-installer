@@ -1,4 +1,4 @@
-# Codex One-Step Installer v0.4.2
+# Codex One-Step Installer v0.4.3
 # Installs Node.js, Python, Codex CLI, and Claude Code
 # Fully automated - no prompts
 
@@ -128,16 +128,44 @@ function Install-CodexCLI {
 
   Write-Step "Installing Codex CLI..."
 
-  $npm = Get-Command npm -ErrorAction SilentlyContinue
-  if (-not $npm) {
-    $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
+  # Find npm
+  $npmPath = "$env:ProgramFiles\nodejs\npm.cmd"
+  if (-not (Test-Path $npmPath)) {
+    $npmPath = (Get-Command npm.cmd -ErrorAction SilentlyContinue).Source
+  }
+  if (-not $npmPath) {
+    $npmPath = (Get-Command npm -ErrorAction SilentlyContinue).Source
   }
 
-  if ($npm) {
-    & $npm install -g @openai/codex 2>&1 | Out-Host
+  if ($npmPath -and (Test-Path $npmPath)) {
+    # Run npm with ErrorActionPreference = Continue to ignore stderr notices
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+
+    Write-Step "Running: npm install -g @openai/codex"
+    cmd /c "`"$npmPath`" install -g @openai/codex" 2>&1 | ForEach-Object { Write-Host $_ }
+
+    $ErrorActionPreference = $prevEAP
+
+    # Ensure npm global bin is in PATH (persistent)
+    $npmPrefix = cmd /c "`"$npmPath`" config get prefix" 2>$null
+    if ($npmPrefix) {
+      $npmPrefix = $npmPrefix.Trim()
+      $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+      if ($userPath -notlike "*$npmPrefix*") {
+        Write-Step "Adding npm global path to User PATH: $npmPrefix"
+        [Environment]::SetEnvironmentVariable('Path', "$userPath;$npmPrefix", 'User')
+      }
+      if ($env:Path -notlike "*$npmPrefix*") {
+        $env:Path += ";$npmPrefix"
+      }
+    }
+
     Refresh-Path
     if (Get-Command codex -ErrorAction SilentlyContinue) {
       Write-Ok "Codex CLI installed"
+    } else {
+      Write-Step "Codex installed but not in PATH yet - open a new terminal"
     }
   } else {
     Write-Err "npm not found - cannot install Codex CLI"
@@ -192,7 +220,7 @@ function Uninstall-All {
 
 Clear-Host
 Write-Host ""
-Write-Host "  Codex One-Step Installer v0.4.2" -ForegroundColor Cyan
+Write-Host "  Codex One-Step Installer v0.4.3" -ForegroundColor Cyan
 Write-Host "  ================================" -ForegroundColor DarkCyan
 Write-Host ""
 
