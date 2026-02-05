@@ -8,7 +8,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$ScriptVersion = '0.2.9'
+$ScriptVersion = '0.3.0'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
@@ -661,16 +661,19 @@ try {
 
   Set-ExecutionPolicySafe
 
-  $shouldSkipWingetBootstrap = $SkipWingetBootstrap -or (Test-IsWindowsSandbox)
-  if ($shouldSkipWingetBootstrap -and -not (Test-WingetAvailable)) {
-    Write-Host "[Codex] Skipping winget bootstrap in this environment; using direct installers for Node.js and Python." -ForegroundColor Yellow
+  # Prepare winget - bootstrap if missing (works in Windows Sandbox too)
+  if (-not (Test-WingetAvailable)) {
+    if ($SkipWingetBootstrap) {
+      Write-Host "[Codex] Skipping winget bootstrap (flag set); using direct installers for Node.js and Python." -ForegroundColor Yellow
+    } else {
+      Install-WingetIfMissing
+    }
   }
 
-  # Prepare winget sources, with automatic bootstrap for non-sandbox environments
-  if ((Test-WingetAvailable) -or ((-not $shouldSkipWingetBootstrap) -and (Install-WingetIfMissing))) {
+  if (Test-WingetAvailable) {
     Update-WingetSources
   } else {
-    Write-Host "[Codex] winget unavailable after bootstrap attempt; switching to direct installers for Node.js and Python." -ForegroundColor Yellow
+    Write-Host "[Codex] winget unavailable; using direct installers for Node.js and Python." -ForegroundColor Yellow
   }
   Install-Node
   Update-Npm
