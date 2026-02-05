@@ -5,7 +5,7 @@ param(
   [switch] $Uninstall
 )
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.2.4'
+$ScriptVersion = '0.2.5'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
@@ -74,8 +74,8 @@ function Install-WingetIfMissing {
     try {
       Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
     } catch {}
-    Install-PackageProvider -Name NuGet -Force | Out-Null
-    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope AllUsers -AllowClobber | Out-Null
+    Install-PackageProvider -Name NuGet -MinimumVersion '2.8.5.201' -Force -ForceBootstrap -Scope AllUsers -Confirm:$false | Out-Null
+    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope AllUsers -AllowClobber -Confirm:$false | Out-Null
     Import-Module Microsoft.WinGet.Client -Force -ErrorAction Stop
     Repair-WinGetPackageManager -AllUsers | Out-Null
     $script:CodexWingetChecked = $false

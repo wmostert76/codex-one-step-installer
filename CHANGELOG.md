@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 - Placeholder for upcoming changes.
 
+## [0.2.5] - 2026-02-05
+- Fixed WinGet bootstrap in Windows Sandbox to run fully non-interactive by forcing NuGet provider bootstrap (`-ForceBootstrap`) and disabling confirmation prompts (`-Confirm:$false`).
+
 ## [0.2.4] - 2026-02-05
 - Added Claude Code installation using Anthropic's official Windows installer flow (`https://claude.ai/install.ps1`) with target channel `latest`.
 - Added skip detection so Claude Code is not reinstalled when already present.
