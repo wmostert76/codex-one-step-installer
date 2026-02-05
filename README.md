@@ -27,11 +27,6 @@
 irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" | iex
 ```
 
-### Installatie (Pinned Version)
-```powershell
-irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/v1.0.0/codex-one-step-install.ps1" | iex
-```
-
 ## 📦 Wat wordt geïnstalleerd?
 
 | Component | Beschrijving |

@@ -5,7 +5,7 @@ param(
   [switch] $Uninstall
 )
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.2.1'
+$ScriptVersion = '0.2.2'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
@@ -48,6 +48,7 @@ function Set-ExecutionPolicySafe {
 
 $script:CodexWingetAvailable = $null
 $script:CodexWingetChecked = $false
+$script:CodexNodeAlreadyPresent = $false
 
 function Test-WingetAvailable {
   if (-not $script:CodexWingetChecked) {
@@ -60,6 +61,79 @@ function Test-WingetAvailable {
     $script:CodexWingetChecked = $true
   }
   return $script:CodexWingetAvailable
+}
+
+function Install-WingetIfMissing {
+  if (Test-WingetAvailable) {
+    return $true
+  }
+  Write-Host "[Codex] winget not found; attempting bootstrap via Microsoft.WinGet.Client..." -ForegroundColor Yellow
+  $previousProgressPreference = $global:ProgressPreference
+  try {
+    $global:ProgressPreference = 'SilentlyContinue'
+    try {
+      Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+    } catch {}
+    Install-PackageProvider -Name NuGet -Force | Out-Null
+    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope AllUsers -AllowClobber | Out-Null
+    Import-Module Microsoft.WinGet.Client -Force -ErrorAction Stop
+    Repair-WinGetPackageManager -AllUsers | Out-Null
+    $script:CodexWingetChecked = $false
+    if (Test-WingetAvailable) {
+      Write-Host "[Codex] winget bootstrap succeeded." -ForegroundColor Green
+      return $true
+    }
+    Write-Host "[Codex] winget bootstrap ran, but winget is still unavailable." -ForegroundColor Yellow
+  } catch {
+    Write-Host "[Codex] winget bootstrap failed: $($_.Exception.Message)" -ForegroundColor Yellow
+  } finally {
+    $global:ProgressPreference = $previousProgressPreference
+  }
+  return $false
+}
+
+function Test-NodeInstalled {
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    return $false
+  }
+  try {
+    $version = node -v 2>$null
+    return -not [string]::IsNullOrWhiteSpace($version)
+  } catch {
+    return $false
+  }
+}
+
+function Test-PythonInstalled {
+  if (Get-Command python -ErrorAction SilentlyContinue) {
+    try {
+      $version = python --version 2>$null
+      if (-not [string]::IsNullOrWhiteSpace($version)) {
+        return $true
+      }
+    } catch {}
+  }
+  if (Get-Command py -ErrorAction SilentlyContinue) {
+    try {
+      $version = py -V 2>$null
+      return -not [string]::IsNullOrWhiteSpace($version)
+    } catch {
+      return $false
+    }
+  }
+  return $false
+}
+
+function Test-CodexInstalled {
+  if (-not (Get-Command codex -ErrorAction SilentlyContinue)) {
+    return $false
+  }
+  try {
+    $version = codex --version 2>$null
+    return -not [string]::IsNullOrWhiteSpace($version)
+  } catch {
+    return $false
+  }
 }
 
 function Invoke-WebRequestCompat {
@@ -219,6 +293,11 @@ function Update-WingetSources {
 }
 
 function Install-Node {
+  if (Test-NodeInstalled) {
+    $script:CodexNodeAlreadyPresent = $true
+    Write-Host "[Codex] Node.js is already installed; skipping." -ForegroundColor Yellow
+    return
+  }
   Write-Host "[Codex] Installing Node.js LTS..." -ForegroundColor Yellow        
   if (Test-WingetAvailable) {
     winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements
@@ -229,6 +308,10 @@ function Install-Node {
 }
 
 function Update-Npm {
+  if ($script:CodexNodeAlreadyPresent) {
+    Write-Host "[Codex] Skipping npm update because Node.js was already present." -ForegroundColor Yellow
+    return
+  }
   Write-Host "[Codex] Updating npm to latest..." -ForegroundColor Yellow
   Refresh-Path
   if (Get-Command npm.cmd -ErrorAction SilentlyContinue) {
@@ -241,6 +324,10 @@ function Update-Npm {
 }
 
 function Install-Python {
+  if (Test-PythonInstalled) {
+    Write-Host "[Codex] Python is already installed; skipping." -ForegroundColor Yellow
+    return
+  }
   Write-Host "[Codex] Installing Python..." -ForegroundColor Yellow
   if (-not (Test-WingetAvailable)) {
     Write-Host "[Codex] winget missing; installing Python via the official installer." -ForegroundColor Yellow
@@ -268,6 +355,10 @@ function Refresh-Path {
 }
 
 function Install-CodexCli {
+  if (Test-CodexInstalled) {
+    Write-Host "[Codex] Codex CLI is already installed; skipping." -ForegroundColor Yellow
+    return
+  }
   Write-Host "[Codex] Installing Codex CLI (@openai/codex)..." -ForegroundColor Yellow
   Refresh-Path
   if (Get-Command npm.cmd -ErrorAction SilentlyContinue) {
@@ -470,11 +561,11 @@ try {
 
   Set-ExecutionPolicySafe
 
-  # Prepare winget sources if available
-  if (Test-WingetAvailable) {
+  # Prepare winget sources, with automatic bootstrap for Windows Sandbox-like environments
+  if ((Test-WingetAvailable) -or (Install-WingetIfMissing)) {
     Update-WingetSources
   } else {
-    Write-Host "[Codex] winget not found; switching to direct installers for Node.js and Python." -ForegroundColor Yellow
+    Write-Host "[Codex] winget unavailable after bootstrap attempt; switching to direct installers for Node.js and Python." -ForegroundColor Yellow
   }
   Install-Node
   Update-Npm

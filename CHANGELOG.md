@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 - Placeholder for upcoming changes.
 
+## [0.2.2] - 2026-02-05
+- Added automatic WinGet bootstrap for environments where `winget` is not preinstalled (including Windows Sandbox) using `Microsoft.WinGet.Client` and `Repair-WinGetPackageManager -AllUsers`.
+- Added install skip logic so Node.js, Python, and Codex CLI are not reinstalled when already present and working.
+- Updated README to remove the pinned-version install section.
+
 ## [0.2.1] - 2026-01-13
 - Added a complete winget-free path that downloads and installs Node.js and Python directly when the Windows Package Manager is missing.
 - Improved the compatibility helpers so the script uses `-UseBasicParsing` on legacy PowerShell and relies on the Python.org metadata API to select a working installer URL.
