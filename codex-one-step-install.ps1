@@ -1,4 +1,4 @@
-# Codex One-Step Installer v0.4.1
+# Codex One-Step Installer v0.4.2
 # Installs Node.js, Python, Codex CLI, and Claude Code
 # Fully automated - no prompts
 
@@ -32,53 +32,22 @@ function Refresh-Path {
 function Install-WinGet {
   if (Get-Command winget -ErrorAction SilentlyContinue) { return $true }
 
-  Write-Step "Bootstrapping winget..."
+  Write-Step "Bootstrapping winget via PowerShell module..."
 
   try {
-    # Method 1: Use Add-AppxPackage directly from GitHub releases
-    $tempDir = Join-Path $env:TEMP "winget-install-$(Get-Random)"
-    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    # Install NuGet provider (required for Install-Module)
+    Write-Step "Installing NuGet provider..."
+    Install-PackageProvider -Name NuGet -Force | Out-Null
 
-    # Download VCLibs
-    Write-Step "Downloading VCLibs..."
-    $vcLibs = Join-Path $tempDir "vclibs.appx"
-    Invoke-WebRequest -Uri "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -OutFile $vcLibs -UseBasicParsing
-    Add-AppxPackage -Path $vcLibs -ErrorAction SilentlyContinue
+    # Install WinGet PowerShell module
+    Write-Step "Installing Microsoft.WinGet.Client module..."
+    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery | Out-Null
 
-    # Download UI.Xaml
-    Write-Step "Downloading UI.Xaml..."
-    $xaml = Join-Path $tempDir "xaml.appx"
-    Invoke-WebRequest -Uri "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx" -OutFile $xaml -UseBasicParsing
-    Add-AppxPackage -Path $xaml -ErrorAction SilentlyContinue
+    # Bootstrap winget using Repair-WinGetPackageManager
+    Write-Step "Running Repair-WinGetPackageManager..."
+    Repair-WinGetPackageManager -AllUsers
 
-    # Get latest winget release
-    Write-Step "Downloading winget..."
-    $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest" -UseBasicParsing
-    $msixUrl = ($releases.assets | Where-Object { $_.name -match '\.msixbundle$' -and $_.name -notmatch 'License' }).browser_download_url
-    $licenseUrl = ($releases.assets | Where-Object { $_.name -match 'License.*\.xml$' }).browser_download_url
-
-    $msix = Join-Path $tempDir "winget.msixbundle"
-    Invoke-WebRequest -Uri $msixUrl -OutFile $msix -UseBasicParsing
-
-    # Install winget
-    Write-Step "Installing winget..."
-    if ($licenseUrl) {
-      $license = Join-Path $tempDir "license.xml"
-      Invoke-WebRequest -Uri $licenseUrl -OutFile $license -UseBasicParsing
-      try {
-        Add-AppxProvisionedPackage -Online -PackagePath $msix -LicensePath $license -ErrorAction Stop | Out-Null
-      } catch {
-        Write-Step "Provisioned install failed, trying Add-AppxPackage..."
-        Add-AppxPackage -Path $msix -ErrorAction Stop
-      }
-    } else {
-      Add-AppxPackage -Path $msix -ErrorAction Stop
-    }
-
-    # Cleanup
-    Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
-
-    # Refresh PATH and verify
+    # Refresh PATH
     Refresh-Path
     Start-Sleep -Seconds 2
 
@@ -90,6 +59,7 @@ function Install-WinGet {
     Write-Err "winget bootstrap failed: $_"
   }
 
+  Write-Step "Continuing without winget (using direct installers)..."
   return $false
 }
 
@@ -222,7 +192,7 @@ function Uninstall-All {
 
 Clear-Host
 Write-Host ""
-Write-Host "  Codex One-Step Installer v0.4.1" -ForegroundColor Cyan
+Write-Host "  Codex One-Step Installer v0.4.2" -ForegroundColor Cyan
 Write-Host "  ================================" -ForegroundColor DarkCyan
 Write-Host ""
 
