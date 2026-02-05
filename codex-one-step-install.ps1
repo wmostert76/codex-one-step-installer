@@ -5,7 +5,7 @@ param(
   [switch] $Uninstall
 )
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.2.6'
+$ScriptVersion = '0.2.7'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
@@ -26,8 +26,22 @@ function Pause-Exit {
 
 if (-not (Test-IsAdmin)) {
   Write-Host "[Codex] Relaunching in elevated mode..." -ForegroundColor Yellow
-  $cmd = "`$env:CODEX_ELEVATED='1'; `$tmpScript = Join-Path `$env:TEMP 'codex-one-step-install-elevated.ps1'; try { Start-BitsTransfer -Source '$scriptUrl' -Destination `$tmpScript -ErrorAction Stop } catch { Invoke-WebRequest -Uri '$scriptUrl' -OutFile `$tmpScript -UseBasicParsing }; & `$tmpScript"
-  Start-Process -FilePath "powershell" -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command $cmd"
+  $elevatedScript = $PSCommandPath
+  if ([string]::IsNullOrWhiteSpace($elevatedScript) -or -not (Test-Path $elevatedScript)) {
+    $cache = [DateTime]::UtcNow.Ticks
+    $elevatedScript = Join-Path $env:TEMP 'codex-one-step-install-elevated.ps1'
+    $elevatedUrl = "$scriptUrl?nocache=$cache"
+    try {
+      Start-BitsTransfer -Source $elevatedUrl -Destination $elevatedScript -ErrorAction Stop
+    } catch {
+      Invoke-WebRequest -Uri $elevatedUrl -OutFile $elevatedScript -UseBasicParsing
+    }
+  }
+  $argList = "-NoProfile -ExecutionPolicy Bypass -File `"$elevatedScript`""
+  if ($Uninstall) {
+    $argList += " -Uninstall"
+  }
+  Start-Process -FilePath "powershell" -Verb RunAs -ArgumentList $argList
   return
 }
 

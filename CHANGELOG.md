@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 - Placeholder for upcoming changes.
 
+## [0.2.7] - 2026-02-05
+- Fixed elevation flow to rerun the same local script file with `RunAs` instead of re-downloading from GitHub, preventing stale cached versions (like `v0.2.4`) during UAC relaunch.
+- Added a fallback download with `?nocache=<ticks>` only when no local script path is available.
+
 ## [0.2.6] - 2026-02-05
 - Hardened WinGet bootstrap for Windows Sandbox by enforcing fully non-interactive NuGet provider setup with explicit provider detection/import and `CurrentUser` scope module installation.
 - Added temporary `ConfirmPreference='None'` handling during bootstrap to suppress confirmation prompts that could still appear in constrained sandbox sessions.
