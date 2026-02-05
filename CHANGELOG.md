@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 - Placeholder for upcoming changes.
 
+## [0.2.9] - 2026-02-05
+- Made the installer unattended by default: disabled end-of-script key prompt and only launches Codex interactively when `-Interactive` is provided.
+- Suppressed PowerShell web request progress output for cleaner non-interactive runs.
+- Forwarded `-SkipWingetBootstrap` and `-Interactive` switches during elevation relaunch so behavior stays consistent after UAC.
+
 ## [0.2.7] - 2026-02-05
 - Fixed elevation flow to rerun the same local script file with `RunAs` instead of re-downloading from GitHub, preventing stale cached versions (like `v0.2.4`) during UAC relaunch.
 - Added a fallback download with `?nocache=<ticks>` only when no local script path is available.

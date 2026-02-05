@@ -2,10 +2,13 @@
 # Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and Claude Code.
 # Run this script in an elevated PowerShell for best results.
 param(
-  [switch] $Uninstall
+  [switch] $Uninstall,
+  [switch] $SkipWingetBootstrap,
+  [switch] $Interactive
 )
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.2.7'
+$ProgressPreference = 'SilentlyContinue'
+$ScriptVersion = '0.2.9'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
@@ -19,6 +22,9 @@ function Test-IsAdmin {
 }
 
 function Pause-Exit {
+  if (-not $Interactive) {
+    return
+  }
   Write-Host "" 
   Write-Host "Press any key to close..." -ForegroundColor Yellow
   try { $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') } catch {}
@@ -41,8 +47,21 @@ if (-not (Test-IsAdmin)) {
   if ($Uninstall) {
     $argList += " -Uninstall"
   }
+  if ($SkipWingetBootstrap) {
+    $argList += " -SkipWingetBootstrap"
+  }
+  if ($Interactive) {
+    $argList += " -Interactive"
+  }
   Start-Process -FilePath "powershell" -Verb RunAs -ArgumentList $argList
   return
+}
+
+function Test-IsWindowsSandbox {
+  if ($env:USERNAME -eq 'WDAGUtilityAccount') {
+    return $true
+  }
+  return $false
 }
 
 function Set-ExecutionPolicySafe {
@@ -642,8 +661,13 @@ try {
 
   Set-ExecutionPolicySafe
 
-  # Prepare winget sources, with automatic bootstrap for Windows Sandbox-like environments
-  if ((Test-WingetAvailable) -or (Install-WingetIfMissing)) {
+  $shouldSkipWingetBootstrap = $SkipWingetBootstrap -or (Test-IsWindowsSandbox)
+  if ($shouldSkipWingetBootstrap -and -not (Test-WingetAvailable)) {
+    Write-Host "[Codex] Skipping winget bootstrap in this environment; using direct installers for Node.js and Python." -ForegroundColor Yellow
+  }
+
+  # Prepare winget sources, with automatic bootstrap for non-sandbox environments
+  if ((Test-WingetAvailable) -or ((-not $shouldSkipWingetBootstrap) -and (Install-WingetIfMissing))) {
     Update-WingetSources
   } else {
     Write-Host "[Codex] winget unavailable after bootstrap attempt; switching to direct installers for Node.js and Python." -ForegroundColor Yellow
@@ -656,8 +680,10 @@ try {
   Refresh-Path
   Verify-Installs
   Write-Host "[Codex] Done." -ForegroundColor Green
-  Write-Host "[Codex] Launching Codex..." -ForegroundColor Green
-  codex --dangerously-bypass-approvals-and-sandbox --search
+  if ($Interactive) {
+    Write-Host "[Codex] Launching Codex..." -ForegroundColor Green
+    codex --dangerously-bypass-approvals-and-sandbox --search
+  }
 } catch {
   Write-Host "[Codex] ERROR: $($_.Exception.Message)" -ForegroundColor Red
 } finally {
