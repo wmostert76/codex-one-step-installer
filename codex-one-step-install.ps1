@@ -1,4 +1,4 @@
-# Codex One-Step Installer v0.4.0
+# Codex One-Step Installer v0.4.1
 # Installs Node.js, Python, Codex CLI, and Claude Code
 # Fully automated - no prompts
 
@@ -65,7 +65,12 @@ function Install-WinGet {
     if ($licenseUrl) {
       $license = Join-Path $tempDir "license.xml"
       Invoke-WebRequest -Uri $licenseUrl -OutFile $license -UseBasicParsing
-      Add-AppxProvisionedPackage -Online -PackagePath $msix -LicensePath $license -ErrorAction Stop | Out-Null
+      try {
+        Add-AppxProvisionedPackage -Online -PackagePath $msix -LicensePath $license -ErrorAction Stop | Out-Null
+      } catch {
+        Write-Step "Provisioned install failed, trying Add-AppxPackage..."
+        Add-AppxPackage -Path $msix -ErrorAction Stop
+      }
     } else {
       Add-AppxPackage -Path $msix -ErrorAction Stop
     }
@@ -217,7 +222,7 @@ function Uninstall-All {
 
 Clear-Host
 Write-Host ""
-Write-Host "  Codex One-Step Installer v0.4.0" -ForegroundColor Cyan
+Write-Host "  Codex One-Step Installer v0.4.1" -ForegroundColor Cyan
 Write-Host "  ================================" -ForegroundColor DarkCyan
 Write-Host ""
 
@@ -249,7 +254,7 @@ if ($Uninstall) {
 }
 
 # Install sequence
-Install-WinGet
+Install-WinGet | Out-Null
 Install-NodeJS
 Install-Python
 Install-CodexCLI
