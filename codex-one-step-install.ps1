@@ -5,7 +5,7 @@ param(
   [switch] $Uninstall
 )
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.2.5'
+$ScriptVersion = '0.2.6'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
@@ -69,13 +69,21 @@ function Install-WingetIfMissing {
   }
   Write-Host "[Codex] winget not found; attempting bootstrap via Microsoft.WinGet.Client..." -ForegroundColor Yellow
   $previousProgressPreference = $global:ProgressPreference
+  $previousConfirmPreference = $global:ConfirmPreference
   try {
     $global:ProgressPreference = 'SilentlyContinue'
+    $global:ConfirmPreference = 'None'
+    try {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    } catch {}
     try {
       Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
     } catch {}
-    Install-PackageProvider -Name NuGet -MinimumVersion '2.8.5.201' -Force -ForceBootstrap -Scope AllUsers -Confirm:$false | Out-Null
-    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope AllUsers -AllowClobber -Confirm:$false | Out-Null
+    if (-not (Get-PackageProvider -ListAvailable -Name NuGet -ErrorAction SilentlyContinue)) {
+      Install-PackageProvider -Name NuGet -MinimumVersion '2.8.5.201' -Force -ForceBootstrap -Scope CurrentUser -Confirm:$false | Out-Null
+    }
+    Import-PackageProvider -Name NuGet -MinimumVersion '2.8.5.201' -Force -ErrorAction SilentlyContinue | Out-Null
+    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope CurrentUser -AllowClobber -Confirm:$false | Out-Null
     Import-Module Microsoft.WinGet.Client -Force -ErrorAction Stop
     Repair-WinGetPackageManager -AllUsers | Out-Null
     $script:CodexWingetChecked = $false
@@ -88,6 +96,7 @@ function Install-WingetIfMissing {
     Write-Host "[Codex] winget bootstrap failed: $($_.Exception.Message)" -ForegroundColor Yellow
   } finally {
     $global:ProgressPreference = $previousProgressPreference
+    $global:ConfirmPreference = $previousConfirmPreference
   }
   return $false
 }

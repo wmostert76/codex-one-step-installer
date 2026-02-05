@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 - Placeholder for upcoming changes.
 
+## [0.2.6] - 2026-02-05
+- Hardened WinGet bootstrap for Windows Sandbox by enforcing fully non-interactive NuGet provider setup with explicit provider detection/import and `CurrentUser` scope module installation.
+- Added temporary `ConfirmPreference='None'` handling during bootstrap to suppress confirmation prompts that could still appear in constrained sandbox sessions.
+
 ## [0.2.5] - 2026-02-05
 - Fixed WinGet bootstrap in Windows Sandbox to run fully non-interactive by forcing NuGet provider bootstrap (`-ForceBootstrap`) and disabling confirmation prompts (`-Confirm:$false`).
 
