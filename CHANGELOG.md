@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 - Placeholder for upcoming changes.
 
+## [0.2.4] - 2026-02-05
+- Added Claude Code installation using Anthropic's official Windows installer flow (`https://claude.ai/install.ps1`) with target channel `latest`.
+- Added skip detection so Claude Code is not reinstalled when already present.
+- Added Claude Code verification output and uninstall integration (`claude uninstall` when available).
+- Updated README to include Claude Code in the installed and removed components lists.
+
 ## [0.2.3] - 2026-02-05
 - Switched installer download examples to `Start-BitsTransfer` (with fallback where relevant) so usage no longer relies on streamed `irm ... | iex`.
 - Updated the self-elevation flow in `codex-one-step-install.ps1` to download the script to `%TEMP%` and execute it, instead of streaming.

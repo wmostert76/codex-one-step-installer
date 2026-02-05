@@ -1,11 +1,11 @@
 # Codex One-Step Installer
-# Installs Node.js (incl. npm), Python, and Codex CLI (@openai/codex).
+# Installs Node.js (incl. npm), Python, Codex CLI (@openai/codex), and Claude Code.
 # Run this script in an elevated PowerShell for best results.
 param(
   [switch] $Uninstall
 )
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.2.3'
+$ScriptVersion = '0.2.4'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
@@ -130,6 +130,18 @@ function Test-CodexInstalled {
   }
   try {
     $version = codex --version 2>$null
+    return -not [string]::IsNullOrWhiteSpace($version)
+  } catch {
+    return $false
+  }
+}
+
+function Test-ClaudeInstalled {
+  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    return $false
+  }
+  try {
+    $version = claude --version 2>$null
     return -not [string]::IsNullOrWhiteSpace($version)
   } catch {
     return $false
@@ -370,6 +382,32 @@ function Install-CodexCli {
   }
 }
 
+function Install-ClaudeCode {
+  if (Test-ClaudeInstalled) {
+    Write-Host "[Codex] Claude Code is already installed; skipping." -ForegroundColor Yellow
+    return
+  }
+
+  Write-Host "[Codex] Installing Claude Code (latest)..." -ForegroundColor Yellow
+  $installerUrl = 'https://claude.ai/install.ps1'
+  $installerPath = Join-Path $env:TEMP 'claude-install.ps1'
+  try {
+    try {
+      Start-BitsTransfer -Source $installerUrl -Destination $installerPath -ErrorAction Stop
+    } catch {
+      Invoke-WebRequestCompat -Params @{ Uri = $installerUrl; OutFile = $installerPath }
+    }
+    $process = Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $installerPath, "latest" -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+      throw "Claude Code installer failed with exit code $($process.ExitCode)."
+    }
+  } finally {
+    if (Test-Path $installerPath) {
+      Remove-Item -Force $installerPath -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 function Get-UninstallRegistryEntries {
   param (
     [Parameter(Mandatory)]
@@ -502,6 +540,20 @@ function Remove-CodexCli {
   }
 }
 
+function Remove-ClaudeCode {
+  Write-Host "[Codex] Removing Claude Code..." -ForegroundColor Yellow
+  Refresh-Path
+  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    Write-Host "[Codex] Claude Code not found; skipping uninstall." -ForegroundColor Yellow
+    return
+  }
+  try {
+    claude uninstall
+  } catch {
+    Write-Host "[Codex] Claude Code uninstall returned an error; continuing." -ForegroundColor Yellow
+  }
+}
+
 function Remove-CodexProfile {
   $target = Join-Path $env:USERPROFILE '.codex'
   if (Test-Path $target) {
@@ -515,6 +567,7 @@ function Remove-CodexProfile {
 function Run-UninstallFlow {
   Write-Host "[Codex] Running uninstall sequence..." -ForegroundColor Cyan
   Remove-CodexCli
+  Remove-ClaudeCode
   Uninstall-Node
   Uninstall-Python
   Remove-CodexProfile
@@ -539,6 +592,11 @@ function Verify-Installs {
   } else {
     Write-Host "Codex CLI was not found on PATH." -ForegroundColor Yellow
   }
+  if (Get-Command claude -ErrorAction SilentlyContinue) {
+    claude --version
+  } else {
+    Write-Host "Claude Code was not found on PATH." -ForegroundColor Yellow
+  }
 }
 
 if ($Uninstall) {
@@ -551,7 +609,7 @@ try {
   Clear-Host
   Write-Host "Codex One-Step Installer v$ScriptVersion" -ForegroundColor Cyan
   Write-Host "------------------" -ForegroundColor Cyan
-  Write-Host "Installing Node.js LTS, Python, and Codex CLI in one step..." -ForegroundColor Yellow
+  Write-Host "Installing Node.js LTS, Python, Codex CLI, and Claude Code in one step..." -ForegroundColor Yellow
   Write-Host ""
 
   # Ensure TLS 1.2 for winget downloads
@@ -571,6 +629,7 @@ try {
   Update-Npm
   Install-Python
   Install-CodexCli
+  Install-ClaudeCode
   Refresh-Path
   Verify-Installs
   Write-Host "[Codex] Done." -ForegroundColor Green

@@ -1,6 +1,6 @@
 # 🚀 Codex OneStep Installer
 
-> One-click installer for Codex tooling on Windows | Node.js + Python + Codex CLI | Zero configuration required
+> One-click installer for AI coding tooling on Windows | Node.js + Python + Codex CLI + Claude Code | Zero configuration required
 
 ```
  ██████╗ ██████╗ ██████╗ ███████╗██╗  ██╗
@@ -36,6 +36,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $script
 | **Node.js LTS** | JavaScript runtime |
 | **Python** | Python programming language |
 | **Codex CLI** | OpenAI's AI coding assistant |
+| **Claude Code** | Anthropic's AI coding assistant |
 
 ## 🗑️ Uninstall
 
@@ -45,7 +46,7 @@ Start-BitsTransfer -Source "https://raw.githubusercontent.com/wmostert76/Codex-O
 powershell -NoProfile -ExecutionPolicy Bypass -File $script -Uninstall
 ```
 
-Verwijdert Node.js, Python, Codex CLI en `.codex` profile directory.
+Verwijdert Node.js, Python, Codex CLI, Claude Code en `.codex` profile directory.
 
 ## ❓ FAQ
 
