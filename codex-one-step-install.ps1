@@ -8,7 +8,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$ScriptVersion = '0.3.0'
+$ScriptVersion = '0.3.1'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
@@ -106,19 +106,26 @@ function Install-WingetIfMissing {
   try {
     $global:ProgressPreference = 'SilentlyContinue'
     $global:ConfirmPreference = 'None'
-    try {
-      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    } catch {}
-    try {
-      Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
-    } catch {}
-    if (-not (Get-PackageProvider -ListAvailable -Name NuGet -ErrorAction SilentlyContinue)) {
-      Install-PackageProvider -Name NuGet -MinimumVersion '2.8.5.201' -Force -ForceBootstrap -Scope CurrentUser -Confirm:$false | Out-Null
-    }
-    Import-PackageProvider -Name NuGet -MinimumVersion '2.8.5.201' -Force -ErrorAction SilentlyContinue | Out-Null
-    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope CurrentUser -AllowClobber -Confirm:$false | Out-Null
+
+    # Ensure TLS 1.2
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+
+    # Install NuGet provider first (required for Install-Module) - force install without prompts
+    Write-Host "[Codex] Installing NuGet provider..." -ForegroundColor Yellow
+    Install-PackageProvider -Name NuGet -MinimumVersion '2.8.5.201' -Force -Scope CurrentUser -ErrorAction SilentlyContinue | Out-Null
+
+    # Trust PSGallery to avoid prompts
+    try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
+
+    # Install WinGet client module
+    Write-Host "[Codex] Installing Microsoft.WinGet.Client module..." -ForegroundColor Yellow
+    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope CurrentUser -AllowClobber -SkipPublisherCheck -ErrorAction Stop | Out-Null
     Import-Module Microsoft.WinGet.Client -Force -ErrorAction Stop
+
+    # Bootstrap winget
+    Write-Host "[Codex] Running Repair-WinGetPackageManager..." -ForegroundColor Yellow
     Repair-WinGetPackageManager -AllUsers | Out-Null
+
     $script:CodexWingetChecked = $false
     if (Test-WingetAvailable) {
       Write-Host "[Codex] winget bootstrap succeeded." -ForegroundColor Green
