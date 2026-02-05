@@ -5,7 +5,7 @@ param(
   [switch] $Uninstall
 )
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '0.2.2'
+$ScriptVersion = '0.2.3'
 $scriptUrl = 'https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1'
 
 function Test-IsAdmin {
@@ -26,7 +26,7 @@ function Pause-Exit {
 
 if (-not (Test-IsAdmin)) {
   Write-Host "[Codex] Relaunching in elevated mode..." -ForegroundColor Yellow
-  $cmd = "`$env:CODEX_ELEVATED='1'; irm '$scriptUrl' | iex"
+  $cmd = "`$env:CODEX_ELEVATED='1'; `$tmpScript = Join-Path `$env:TEMP 'codex-one-step-install-elevated.ps1'; try { Start-BitsTransfer -Source '$scriptUrl' -Destination `$tmpScript -ErrorAction Stop } catch { Invoke-WebRequest -Uri '$scriptUrl' -OutFile `$tmpScript -UseBasicParsing }; & `$tmpScript"
   Start-Process -FilePath "powershell" -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command $cmd"
   return
 }

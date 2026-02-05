@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 - Placeholder for upcoming changes.
 
+## [0.2.3] - 2026-02-05
+- Switched installer download examples to `Start-BitsTransfer` (with fallback where relevant) so usage no longer relies on streamed `irm ... | iex`.
+- Updated the self-elevation flow in `codex-one-step-install.ps1` to download the script to `%TEMP%` and execute it, instead of streaming.
+- Updated `bootstrap.ps1` to download and execute the script file via BITS (fallback to `Invoke-WebRequest`).
+
 ## [0.2.2] - 2026-02-05
 - Added automatic WinGet bootstrap for environments where `winget` is not preinstalled (including Windows Sandbox) using `Microsoft.WinGet.Client` and `Repair-WinGetPackageManager -AllUsers`.
 - Added install skip logic so Node.js, Python, and Codex CLI are not reinstalled when already present and working.

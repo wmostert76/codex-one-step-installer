@@ -24,7 +24,9 @@
 
 ### Installatie (Latest)
 ```powershell
-irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" | iex
+$script = "$env:TEMP\codex-one-step-install.ps1"
+Start-BitsTransfer -Source "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" -Destination $script
+powershell -NoProfile -ExecutionPolicy Bypass -File $script
 ```
 
 ## 📦 Wat wordt geïnstalleerd?
@@ -38,8 +40,9 @@ irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master
 ## 🗑️ Uninstall
 
 ```powershell
-irm "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" -OutFile codex-one-step-install.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\codex-one-step-install.ps1 -Uninstall
+$script = "$env:TEMP\codex-one-step-install.ps1"
+Start-BitsTransfer -Source "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" -Destination $script
+powershell -NoProfile -ExecutionPolicy Bypass -File $script -Uninstall
 ```
 
 Verwijdert Node.js, Python, Codex CLI en `.codex` profile directory.
