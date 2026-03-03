@@ -1,5 +1,5 @@
 # Codex One-Step Installer v0.4.3
-# Installs Node.js, Python, Codex CLI, and Claude Code
+# Installs Node.js, Python, and Codex CLI
 # Fully automated - no prompts
 
 param([switch]$Uninstall)
@@ -172,39 +172,12 @@ function Install-CodexCLI {
   }
 }
 
-function Install-ClaudeCode {
-  Refresh-Path
-
-  if (Get-Command claude -ErrorAction SilentlyContinue) {
-    Write-Ok "Claude Code already installed"
-    return
-  }
-
-  Write-Step "Installing Claude Code..."
-
-  try {
-    $installer = Join-Path $env:TEMP "claude-install.ps1"
-    Invoke-WebRequest -Uri "https://claude.ai/install.ps1" -OutFile $installer -UseBasicParsing
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $installer
-    Remove-Item $installer -Force -ErrorAction SilentlyContinue
-    Refresh-Path
-    Write-Ok "Claude Code installed"
-  } catch {
-    Write-Err "Claude Code install failed: $_"
-  }
-}
-
 function Uninstall-All {
   Write-Step "Uninstalling..."
 
   # Codex CLI
   if (Get-Command npm -ErrorAction SilentlyContinue) {
     npm uninstall -g @openai/codex 2>&1 | Out-Null
-  }
-
-  # Claude Code
-  if (Get-Command claude -ErrorAction SilentlyContinue) {
-    claude uninstall 2>&1 | Out-Null
   }
 
   # Node.js & Python via winget or registry
@@ -256,7 +229,6 @@ Install-WinGet | Out-Null
 Install-NodeJS
 Install-Python
 Install-CodexCLI
-Install-ClaudeCode
 
 # Final verification
 Write-Host ""
@@ -272,7 +244,6 @@ if (Get-Command node -ErrorAction SilentlyContinue) { Write-Host "    Node.js: $
 if (Get-Command npm -ErrorAction SilentlyContinue) { Write-Host "    npm:     $(npm -v)" }
 if (Get-Command python -ErrorAction SilentlyContinue) { Write-Host "    Python:  $(python --version 2>&1)" }
 if (Get-Command codex -ErrorAction SilentlyContinue) { Write-Host "    Codex:   $(codex --version 2>&1)" }
-if (Get-Command claude -ErrorAction SilentlyContinue) { Write-Host "    Claude:  $(claude --version 2>&1)" }
 
 Write-Host ""
 Write-Host "  Open a NEW terminal to use the tools." -ForegroundColor Yellow
