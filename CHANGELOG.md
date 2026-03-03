@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-- Placeholder for upcoming changes.
+## [Unreleased] - 2026-03-03
+- Removed Claude Code installation, uninstall, and verification from `codex-one-step-install.ps1`.
+- Updated README so the documented installed and removed components now match the current script behavior.
 
 ## [0.2.9] - 2026-02-05
 - Made the installer unattended by default: disabled end-of-script key prompt and only launches Codex interactively when `-Interactive` is provided.
