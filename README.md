@@ -1,29 +1,67 @@
-﻿# Codex One Step Installer
+# 🚀 Codex OneStep Installer
 
-## Overview
-- Repository: $name
-- Owner: wmostert76
-- Default branch: $branch
+> One-click installer for AI coding tooling on Windows | Node.js + Python + Codex CLI | Zero configuration required
 
-## Features
-- Consistente repo-opmaak
-- Automatische versie-releases
-- Automatische changelog updates
+```
+ ██████╗ ██████╗ ██████╗ ███████╗██╗  ██╗
+██╔════╝██╔═══██╗██╔══██╗██╔════╝╚██╗██╔╝
+██║     ██║   ██║██║  ██║█████╗   ╚███╔╝
+██║     ██║   ██║██║  ██║██╔══╝   ██╔██╗
+╚██████╗╚██████╔╝██████╔╝███████╗██╔╝ ██╗
+ ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
+        ONE-STEP INSTALLER
+```
 
-## Getting Started
-`ash
-git clone https://github.com/wmostert76/codex-one-step-installer.git
-cd codex-one-step-installer
-`
+## ✨ Features
 
-## Usage
-- Werk op de default branch voor standaard release-flow.
-- Elke push triggert automatische versieverhoging en release-notes.
+- **One Command Install** - Volledige Codex setup in één PowerShell commando
+- **Auto Elevation** - Vraagt automatisch Administrator rechten indien nodig
+- **Winget-free Support** - Werkt ook op servers zonder Windows Package Manager
+- **Pinned Versions** - Gebruik tags voor stabiele, herhaalbare installaties
+- **Uninstall Support** - Volledige verwijdering met `-Uninstall` flag
 
-## Contributing
-1. Maak je wijziging.
-2. Commit en push.
-3. Controleer de Actions en release-output.
+## 🚀 Quick Start
 
-## License
-Proprietary (tenzij anders aangegeven).
+### Installatie (Latest)
+```powershell
+$script = "$env:TEMP\codex-one-step-install.ps1"
+Start-BitsTransfer -Source "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" -Destination $script
+powershell -NoProfile -ExecutionPolicy Bypass -File $script
+```
+
+## 📦 Wat wordt geïnstalleerd?
+
+| Component | Beschrijving |
+|-----------|--------------|
+| **Node.js LTS** | JavaScript runtime |
+| **Python** | Python programming language |
+| **Codex CLI** | OpenAI's AI coding assistant |
+
+## 🗑️ Uninstall
+
+```powershell
+$script = "$env:TEMP\codex-one-step-install.ps1"
+Start-BitsTransfer -Source "https://raw.githubusercontent.com/wmostert76/Codex-OneStep-Installer/master/codex-one-step-install.ps1" -Destination $script
+powershell -NoProfile -ExecutionPolicy Bypass -File $script -Uninstall
+```
+
+Verwijdert Node.js, Python en Codex CLI.
+
+## ❓ FAQ
+
+| Vraag | Antwoord |
+|-------|----------|
+| **Is dit veilig?** | Review de script en gebruik pinned tags voor vaste versies |
+| **Wat installeert het?** | Codex tooling voor Windows, geconfigureerd voor eerste gebruik |
+| **Kan ik dit automatiseren?** | Ja, gebruik pinned tags in CI/provisioning scripts |
+
+## 🛠️ Technische Details
+
+- PowerShell script met automatische privilege escalatie
+- Ondersteunt zowel Winget als directe installer downloads
+- Werkt op Windows 10/11 en Windows Server
+
+## 🤝 Contributing
+
+PRs en issues zijn welkom. Bij wijzigingen aan de installer flow, beschrijf de rationale en omgevingsaannames.
+
