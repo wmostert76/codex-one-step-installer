@@ -18,7 +18,7 @@
 - **Auto Elevation** - Vraagt automatisch Administrator rechten indien nodig
 - **Winget-free Support** - Werkt ook op servers zonder Windows Package Manager
 - **Pinned Versions** - Gebruik tags voor stabiele, herhaalbare installaties
-- **Uninstall Support** - Volledige verwijdering met `-Uninstall` flag
+- **Uninstall Support** - Deep cleanup van Node.js, Python, Codex CLI en bekende caches/sporen met `-Uninstall`
 
 ## 🚀 Quick Start
 
