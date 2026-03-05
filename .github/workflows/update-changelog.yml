@@ -1,0 +1,63 @@
+﻿name: Update Changelog
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Ensure CHANGELOG.md exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f CHANGELOG.md ]]; then
+            echo "# Changelog" > CHANGELOG.md
+            echo >> CHANGELOG.md
+            echo "Alle wijzigingen per release worden hier automatisch bijgehouden." >> CHANGELOG.md
+            echo >> CHANGELOG.md
+          fi
+
+      - name: Prepend latest release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.release.tag_name }}"
+          DATE="$(date -u +%Y-%m-%d)"
+          NOTES_FILE="$(mktemp)"
+          printf "%s" '${{ github.event.release.body }}' > "$NOTES_FILE"
+
+          TMP_FILE="$(mktemp)"
+          {
+            echo "## ${TAG} - ${DATE}"
+            echo
+            cat "$NOTES_FILE"
+            echo
+            echo
+            cat CHANGELOG.md
+          } > "$TMP_FILE"
+
+          mv "$TMP_FILE" CHANGELOG.md
+
+      - name: Commit and push CHANGELOG.md
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changelog updates."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs: update changelog for ${{ github.event.release.tag_name }} [skip release]"
+          git push origin master

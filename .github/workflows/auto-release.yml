@@ -1,0 +1,66 @@
+﻿name: Auto Release
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: "!contains(github.event.head_commit.message, '[skip release]')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate next version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest="$(git tag -l 'v*' --sort=-v:refname | head -n 1)"
+          if [[ -z "$latest" ]]; then
+            next="v1.0.0"
+            range=""
+          else
+            raw="${latest#v}"
+            IFS='.' read -r major minor patch <<< "$raw"
+            patch=$((patch + 1))
+            next="v${major}.${minor}.${patch}"
+            range="${latest}..HEAD"
+          fi
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+          echo "range=$range" >> "$GITHUB_OUTPUT"
+
+      - name: Build release notes
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=release_notes.md
+          echo "## Changes" > "$file"
+          echo >> "$file"
+          if [[ -z "${{ steps.version.outputs.range }}" ]]; then
+            echo "- Initial release." >> "$file"
+          else
+            git log --no-merges --pretty=format:'- %s (%h)' "${{ steps.version.outputs.range }}" >> "$file"
+          fi
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.version.outputs.next }}"
+          git push origin "${{ steps.version.outputs.next }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.next }}
+          body_path: ${{ steps.notes.outputs.file }}
