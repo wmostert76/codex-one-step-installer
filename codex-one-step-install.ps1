@@ -122,40 +122,6 @@ function Uninstall-ByDisplayNamePattern {
   }
 }
 
-function Install-WinGet {
-  if (Get-Command winget -ErrorAction SilentlyContinue) { return $true }
-
-  Write-Step "Bootstrapping winget via PowerShell module..."
-
-  try {
-    # Install NuGet provider (required for Install-Module)
-    Write-Step "Installing NuGet provider..."
-    Install-PackageProvider -Name NuGet -Force | Out-Null
-
-    # Install WinGet PowerShell module
-    Write-Step "Installing Microsoft.WinGet.Client module..."
-    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery | Out-Null
-
-    # Bootstrap winget using Repair-WinGetPackageManager
-    Write-Step "Running Repair-WinGetPackageManager..."
-    Repair-WinGetPackageManager -AllUsers
-
-    # Refresh PATH
-    Refresh-Path
-    Start-Sleep -Seconds 2
-
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-      Write-Ok "winget installed successfully!"
-      return $true
-    }
-  } catch {
-    Write-Err "winget bootstrap failed: $_"
-  }
-
-  Write-Step "Continuing without winget (using direct installers)..."
-  return $false
-}
-
 function Install-NodeJS {
   if (Get-Command node -ErrorAction SilentlyContinue) {
     Write-Ok "Node.js already installed: $(node -v)"
@@ -164,21 +130,17 @@ function Install-NodeJS {
 
   Write-Step "Installing Node.js LTS..."
 
-  if (Get-Command winget -ErrorAction SilentlyContinue) {
-    winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements --silent | Out-Host
-  } else {
-    # Direct MSI install
-    Write-Step "Downloading Node.js installer..."
-    $index = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -UseBasicParsing
-    $lts = ($index | Where-Object { $_.lts })[0]
-    $msiUrl = "https://nodejs.org/dist/$($lts.version)/node-$($lts.version)-x64.msi"
-    $msi = Join-Path $env:TEMP "node-install.msi"
-    Invoke-WebRequest -Uri $msiUrl -OutFile $msi -UseBasicParsing
+  # Direct MSI install
+  Write-Step "Downloading Node.js installer..."
+  $index = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -UseBasicParsing
+  $lts = ($index | Where-Object { $_.lts })[0]
+  $msiUrl = "https://nodejs.org/dist/$($lts.version)/node-$($lts.version)-x64.msi"
+  $msi = Join-Path $env:TEMP "node-install.msi"
+  Invoke-WebRequest -Uri $msiUrl -OutFile $msi -UseBasicParsing
 
-    Write-Step "Running Node.js installer..."
-    Start-Process -FilePath "msiexec.exe" -ArgumentList "/i", $msi, "/qn", "/norestart", "ADDLOCAL=ALL" -Wait
-    Remove-Item $msi -Force -ErrorAction SilentlyContinue
-  }
+  Write-Step "Running Node.js installer..."
+  Start-Process -FilePath "msiexec.exe" -ArgumentList "/i", $msi, "/qn", "/norestart", "ADDLOCAL=ALL" -Wait
+  Remove-Item $msi -Force -ErrorAction SilentlyContinue
 
   Refresh-Path
   if (Get-Command node -ErrorAction SilentlyContinue) {
@@ -194,19 +156,15 @@ function Install-Python {
 
   Write-Step "Installing Python..."
 
-  if (Get-Command winget -ErrorAction SilentlyContinue) {
-    winget install --id Python.Python.3.12 -e --source winget --accept-source-agreements --accept-package-agreements --silent | Out-Host
-  } else {
-    # Direct installer
-    Write-Step "Downloading Python installer..."
-    $pyUrl = "https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe"
-    $pyExe = Join-Path $env:TEMP "python-install.exe"
-    Invoke-WebRequest -Uri $pyUrl -OutFile $pyExe -UseBasicParsing
+  # Direct installer
+  Write-Step "Downloading Python installer..."
+  $pyUrl = "https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe"
+  $pyExe = Join-Path $env:TEMP "python-install.exe"
+  Invoke-WebRequest -Uri $pyUrl -OutFile $pyExe -UseBasicParsing
 
-    Write-Step "Running Python installer..."
-    Start-Process -FilePath $pyExe -ArgumentList "/quiet", "InstallAllUsers=1", "PrependPath=1" -Wait
-    Remove-Item $pyExe -Force -ErrorAction SilentlyContinue
-  }
+  Write-Step "Running Python installer..."
+  Start-Process -FilePath $pyExe -ArgumentList "/quiet", "InstallAllUsers=1", "PrependPath=1" -Wait
+  Remove-Item $pyExe -Force -ErrorAction SilentlyContinue
 
   Refresh-Path
 }
@@ -273,16 +231,7 @@ function Uninstall-All {
     npm uninstall -g @openai/codex 2>&1 | Out-Null
   }
 
-  # Node.js & Python via winget
-  if (Get-Command winget -ErrorAction SilentlyContinue) {
-    winget uninstall --id OpenJS.NodeJS.LTS -e --silent --disable-interactivity 2>&1 | Out-Null
-    winget uninstall --id OpenJS.NodeJS -e --silent --disable-interactivity 2>&1 | Out-Null
-    winget uninstall --id Python.Python.3.12 -e --silent --disable-interactivity 2>&1 | Out-Null
-    winget uninstall --id Python.Python.3.11 -e --silent --disable-interactivity 2>&1 | Out-Null
-    winget uninstall --id Python.Python.3.10 -e --silent --disable-interactivity 2>&1 | Out-Null
-  }
-
-  # Registry fallback (for direct installer cases)
+  # Uninstall Node.js & Python via registry (direct installer cases)
   Uninstall-ByDisplayNamePattern -Pattern '^Node\.js'
   Uninstall-ByDisplayNamePattern -Pattern '^Python 3\.(10|11|12)'
 
@@ -366,7 +315,6 @@ if ($Uninstall) {
 }
 
 # Install sequence
-Install-WinGet | Out-Null
 Install-NodeJS
 Install-Python
 Install-CodexCLI
@@ -387,5 +335,17 @@ if (Get-Command python -ErrorAction SilentlyContinue) { Write-Host "    Python: 
 if (Get-Command codex -ErrorAction SilentlyContinue) { Write-Host "    Codex:   $(codex --version 2>&1)" }
 
 Write-Host ""
-Write-Host "  Open a NEW terminal to use the tools." -ForegroundColor Yellow
+if (Get-Command codex -ErrorAction SilentlyContinue) {
+  Write-Step "Starting Codex with bypass + search flags..."
+  try {
+    Start-Process -FilePath "codex" -ArgumentList "--dangerously-bypass-approvals-and-sandbox --search"
+    Write-Ok "Codex started successfully"
+  } catch {
+    Write-Err "Could not auto-start Codex: $_"
+    Write-Host "  Run manually: codex --dangerously-bypass-approvals-and-sandbox --search" -ForegroundColor Yellow
+  }
+} else {
+  Write-Host "  Codex not found in PATH yet. Open a NEW terminal and run:" -ForegroundColor Yellow
+  Write-Host "  codex --dangerously-bypass-approvals-and-sandbox --search" -ForegroundColor Yellow
+}
 Write-Host ""

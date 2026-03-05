@@ -16,7 +16,7 @@
 
 - **One Command Install** - Volledige Codex setup in één PowerShell commando
 - **Auto Elevation** - Vraagt automatisch Administrator rechten indien nodig
-- **Winget-free Support** - Werkt ook op servers zonder Windows Package Manager
+- **Direct Download Installers** - Geen Winget nodig; directe download en stille installatie
 - **Pinned Versions** - Gebruik tags voor stabiele, herhaalbare installaties
 - **Uninstall Support** - Deep cleanup van Node.js, Python, Codex CLI en bekende caches/sporen met `-Uninstall`
 
@@ -54,7 +54,7 @@ Verwijdert Node.js, Python en Codex CLI.
 ## 🛠️ Technische Details
 
 - PowerShell script met automatische privilege escalatie
-- Ondersteunt zowel Winget als directe installer downloads
+- Gebruikt directe installer downloads (geen Winget afhankelijkheid)
 - Werkt op Windows 10/11 en Windows Server
 
 ## 🤝 Contributing
