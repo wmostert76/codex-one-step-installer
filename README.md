@@ -11,12 +11,14 @@ PowerShell bootstrap voor een lege Windows Server 2016 machine die:
 
 ## Copy/paste install
 
-Open een elevated PowerShell op Windows Server 2016 en plak:
+Open een elevated PowerShell op Windows Server 2016 en plak dit. Dit downloadt eerst `bootstrap.ps1` naar disk en voert het daarna uit, dus niet streamen via `iex`:
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-irm https://raw.githubusercontent.com/wmostert76/codex-one-step-installer/main/bootstrap.ps1 | iex
+$bootstrap = Join-Path $env:TEMP 'codex-bootstrap.ps1'
+Start-BitsTransfer -Source 'https://raw.githubusercontent.com/wmostert76/codex-one-step-installer/main/bootstrap.ps1' -Destination $bootstrap
+& $bootstrap
 ```
 
 ## Copy/paste uninstall
@@ -38,6 +40,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 ## Bestanden
 
 - `bootstrap.ps1`: downloadt `install.ps1` en `uninstall.ps1` vanuit deze repo en start de installatie
+- `bootstrap.ps1` gebruikt eerst `Start-BitsTransfer` en valt alleen terug op `Invoke-WebRequest` als BITS niet werkt
 - `install.ps1`: installeert Node.js, Python en Codex, slaat state op in `C:\ProgramData\CodexOneStepInstaller` en start Codex meteen
 - `uninstall.ps1`: verwijdert de globale Codex npm package, ruimt lokale Codex-data op en probeert daarna Node.js en Python netjes te uninstallen
 

@@ -17,13 +17,29 @@ function Get-RawUrl {
     "https://raw.githubusercontent.com/$RepoOwner/$RepoName/$Branch/$FileName"
 }
 
+function Download-File {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Url,
+        [Parameter(Mandatory = $true)]
+        [string]$Destination
+    )
+
+    try {
+        Start-BitsTransfer -Source $Url -Destination $Destination -ErrorAction Stop
+    }
+    catch {
+        Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile $Destination
+    }
+}
+
 $programDataRoot = Join-Path $env:ProgramData 'CodexOneStepInstaller'
 New-Item -ItemType Directory -Force -Path $programDataRoot | Out-Null
 
 $installPath = Join-Path $programDataRoot 'install.ps1'
 $uninstallPath = Join-Path $programDataRoot 'uninstall.ps1'
 
-Invoke-WebRequest -UseBasicParsing -Uri (Get-RawUrl -FileName 'install.ps1') -OutFile $installPath
-Invoke-WebRequest -UseBasicParsing -Uri (Get-RawUrl -FileName 'uninstall.ps1') -OutFile $uninstallPath
+Download-File -Url (Get-RawUrl -FileName 'install.ps1') -Destination $installPath
+Download-File -Url (Get-RawUrl -FileName 'uninstall.ps1') -Destination $uninstallPath
 
 & $installPath -RepoOwner $RepoOwner -RepoName $RepoName -Branch $Branch
