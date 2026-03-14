@@ -4,7 +4,7 @@ param(
     [string]$RepoName = 'codex-one-step-installer',
     [string]$Branch = 'main',
     [string]$NodeVersion = '18.20.8',
-    [string]$PythonVersion = '3.9.25',
+    [string]$PythonVersion = '3.9.13',
     [switch]$SkipLaunch
 )
 

@@ -46,7 +46,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 `install.ps1` ondersteunt optioneel:
 
 ```powershell
-.\install.ps1 -NodeVersion 18.20.8 -PythonVersion 3.9.25
+.\install.ps1 -NodeVersion 18.20.8 -PythonVersion 3.9.13
 .\install.ps1 -SkipLaunch
 ```
 
@@ -54,7 +54,8 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 
 - Draai install en uninstall als Administrator.
 - De bootstrap gaat uit van publicatie op `wmostert76/codex-one-step-installer` branch `main`.
-- De installer gebruikt op dit moment standaard `Node.js 18.20.8` en `Python 3.9.25`.
+- De installer gebruikt op dit moment standaard `Node.js 18.20.8` en `Python 3.9.13`.
 - OpenAI/Codex authenticatie wordt niet in het script ingebakken. Bij de eerste start van Codex moet je dus nog inloggen of een API-key/config klaar hebben staan.
 - Codex zelf wordt officieel via npm geïnstalleerd als `@openai/codex`.
 - Windows Server 2016 support hangt uiteindelijk ook af van wat de gekozen Node.js build op die host nog ondersteunt. Het script automatiseert de flow, maar kan upstream OS-limieten niet omzeilen.
+- Python `3.9.25` gaf op 14 maart 2026 een `404` voor de klassieke Windows `amd64.exe`. Daarom gebruikt deze repo standaard `3.9.13`, de laatste 3.9-release waarvan die installer publiek beschikbaar is.

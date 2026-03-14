@@ -144,7 +144,7 @@ $nodeDisplayName = if ($state -and $state.nodeVersion) { "Node.js $($state.nodeV
 $pythonDisplayName = if ($state -and $state.pythonVersion) { "Python $($state.pythonVersion) (64-bit)" } else { $null }
 
 $nodeCandidates = @($nodeDisplayName, 'Node.js') | Where-Object { $_ }
-$pythonCandidates = @($pythonDisplayName, 'Python 3.9.25 (64-bit)', 'Python 3.9.25 Core Interpreter (64-bit)') | Where-Object { $_ }
+$pythonCandidates = @($pythonDisplayName, 'Python 3.9.13 (64-bit)', 'Python 3.9.13 Core Interpreter (64-bit)') | Where-Object { $_ }
 
 $nodeEntry = Get-UninstallEntry -DisplayNames $nodeCandidates
 if ($nodeEntry) {
