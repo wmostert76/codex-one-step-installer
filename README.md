@@ -1,19 +1,25 @@
 # codex-one-step-installer
 
-Huidige release: `0.0.2`
+Windows Server 2016 PowerShell installer voor Codex CLI met directe bootstrap, TLS 1.2, uninstall-flow en release-sync.
 
-PowerShell bootstrap voor een lege Windows Server 2016 machine die:
+## Release
 
-- TLS 1.2 forceert voor downloads
-- Node.js downloadt en installeert
-- Python downloadt en installeert
-- `@openai/codex` globaal via npm installeert
-- Codex meteen start met `--dangerously-bypass-approvals-and-sandbox --search`
-- een uninstallscript neerzet dat Codex, Node.js en Python weer verwijdert
+- Huidige release: `0.0.2`
+- Repo: `wmostert76/codex-one-step-installer`
+- Licentie: [MIT](LICENSE)
 
-## Copy/paste install
+## Wat dit doet
 
-Open een elevated PowerShell op Windows Server 2016 en plak dit. Dit downloadt eerst `bootstrap.ps1` naar disk en voert het daarna uit, dus niet streamen via `iex`:
+- forceert TLS 1.2 voor downloads
+- downloadt en installeert Node.js
+- downloadt en installeert Python
+- installeert `@openai/codex` globaal via npm
+- start Codex direct met `--dangerously-bypass-approvals-and-sandbox --search`
+- zet een uninstallscript neer dat Codex, Node.js en Python weer verwijdert
+
+## Snelle installatie
+
+Open een elevated PowerShell op Windows Server 2016 en voer dit uit. De bootstrap wordt eerst naar disk gedownload en daarna pas gestart:
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
@@ -23,15 +29,15 @@ Start-BitsTransfer -Source 'https://raw.githubusercontent.com/wmostert76/codex-o
 & $bootstrap
 ```
 
-## Copy/paste uninstall
+## Uninstall
 
-Als de repo live staat en de install een keer is uitgevoerd, staat het uninstallscript lokaal op:
+Na installatie staat het uninstallscript op:
 
 ```powershell
 C:\ProgramData\CodexOneStepInstaller\uninstall.ps1
 ```
 
-Start het zo:
+Uitvoeren:
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
@@ -41,26 +47,50 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 
 ## Bestanden
 
-- `bootstrap.ps1`: downloadt `install.ps1` en `uninstall.ps1` vanuit deze repo en start de installatie
-- `bootstrap.ps1` gebruikt eerst `Start-BitsTransfer` en valt alleen terug op `Invoke-WebRequest` als BITS niet werkt
-- `install.ps1`: installeert Node.js, Python en Codex, slaat state op in `C:\ProgramData\CodexOneStepInstaller` en start Codex meteen
-- `uninstall.ps1`: verwijdert de globale Codex npm package, ruimt lokale Codex-data op en probeert daarna Node.js en Python netjes te uninstallen
+- `bootstrap.ps1` downloadt `install.ps1` en `uninstall.ps1` en gebruikt eerst `Start-BitsTransfer`, met fallback naar `Invoke-WebRequest`
+- `install.ps1` installeert Node.js, Python en Codex, schrijft state weg in `C:\ProgramData\CodexOneStepInstaller` en start Codex direct
+- `uninstall.ps1` verwijdert de globale Codex npm-package, ruimt lokale Codex-data op en probeert daarna Node.js en Python netjes te uninstallen
+- `VERSION` is de bron voor de releaseversie
+- `scripts/sync-release.sh` houdt codeversie, commit, tag en GitHub release gelijk
 
 ## Parameters
 
-`install.ps1` ondersteunt optioneel:
+Optionele install-parameters:
 
 ```powershell
 .\install.ps1 -NodeVersion 18.20.8 -PythonVersion 3.9.13
 .\install.ps1 -SkipLaunch
 ```
 
-## Belangrijke notities
+## Standaarden
 
-- Draai install en uninstall als Administrator.
-- De bootstrap gaat uit van publicatie op `wmostert76/codex-one-step-installer` branch `main`.
-- De installer gebruikt op dit moment standaard `Node.js 18.20.8` en `Python 3.9.13`.
-- OpenAI/Codex authenticatie wordt niet in het script ingebakken. Bij de eerste start van Codex moet je dus nog inloggen of een API-key/config klaar hebben staan.
-- Codex zelf wordt officieel via npm geïnstalleerd als `@openai/codex`.
-- Windows Server 2016 support hangt uiteindelijk ook af van wat de gekozen Node.js build op die host nog ondersteunt. Het script automatiseert de flow, maar kan upstream OS-limieten niet omzeilen.
-- Python `3.9.25` gaf op 14 maart 2026 een `404` voor de klassieke Windows `amd64.exe`. Daarom gebruikt deze repo standaard `3.9.13`, de laatste 3.9-release waarvan die installer publiek beschikbaar is.
+- standaard Node.js: `18.20.8`
+- standaard Python: `3.9.13`
+- bootstrap branch: `main`
+- GitHub release/tag: gelijk aan de versie in `VERSION` en `ScriptVersion`
+
+## Aandachtspunten
+
+- draai install en uninstall als Administrator
+- OpenAI/Codex authenticatie wordt niet door deze scripts geconfigureerd; bij de eerste start moet je nog inloggen of een API-key/config klaar hebben
+- Codex wordt officieel via npm geïnstalleerd als `@openai/codex`
+- Windows Server 2016 support hangt uiteindelijk ook af van wat de gekozen Node.js build op die host nog ondersteunt
+- Python `3.9.25` gaf op 14 maart 2026 een `404` voor de klassieke Windows `amd64.exe`; daarom gebruikt deze repo standaard `3.9.13`
+
+## Release Flow
+
+Gebruik voor een sync release:
+
+```bash
+scripts/sync-release.sh 0.0.2
+scripts/sync-release.sh 0.0.3 /pad/naar/changelog.md
+```
+
+De bedoeling is:
+
+- `VERSION`
+- `ScriptVersion` in `bootstrap.ps1`, `install.ps1` en `uninstall.ps1`
+- de releasevermelding in deze README
+- de Git-tag en GitHub release
+
+Die vier moeten altijd gelijk lopen.
