@@ -2,6 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
+[string]$ScriptVersion = '0.0.2'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Test-IsAdministrator {
@@ -12,7 +13,7 @@ function Test-IsAdministrator {
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[codex-uninstall] $Message"
+    Write-Host "[codex-uninstall v$ScriptVersion] $Message"
 }
 
 function Refresh-ProcessPath {

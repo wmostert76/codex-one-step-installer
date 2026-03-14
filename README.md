@@ -1,5 +1,7 @@
 # codex-one-step-installer
 
+Huidige release: `0.0.2`
+
 PowerShell bootstrap voor een lege Windows Server 2016 machine die:
 
 - TLS 1.2 forceert voor downloads
