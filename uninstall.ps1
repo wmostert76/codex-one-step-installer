@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-[string]$ScriptVersion = '0.0.4'
+[string]$ScriptVersion = '0.0.5'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Test-IsAdministrator {
@@ -43,6 +43,12 @@ function Split-CommandString {
         FilePath     = $parts[0]
         ArgumentList = if ($parts.Count -gt 1) { $parts[1] } else { '' }
     }
+}
+
+function Test-IgnorableUninstallExitCode {
+    param([int]$ExitCode)
+
+    return $ExitCode -in @(1605, 1614)
 }
 
 function Get-UninstallEntries {
@@ -100,6 +106,11 @@ function Invoke-UninstallEntry {
         $command = Split-CommandString -CommandString $Entry.QuietUninstallString
         $process = Start-Process -FilePath $command.FilePath -ArgumentList $command.ArgumentList -Wait -PassThru -WindowStyle Hidden
         if ($process.ExitCode -ne 0) {
+            if (Test-IgnorableUninstallExitCode -ExitCode $process.ExitCode) {
+                Write-Warning "$($Entry.DisplayName) uninstall returned exit code $($process.ExitCode). Continuing because the product may already be removed."
+                return
+            }
+
             throw "$($Entry.DisplayName) uninstall failed with exit code $($process.ExitCode)."
         }
         return
@@ -122,9 +133,35 @@ function Invoke-UninstallEntry {
         }
 
         if ($process.ExitCode -ne 0) {
+            if (Test-IgnorableUninstallExitCode -ExitCode $process.ExitCode) {
+                Write-Warning "$($Entry.DisplayName) uninstall returned exit code $($process.ExitCode). Continuing because the product may already be removed."
+                return
+            }
+
             throw "$($Entry.DisplayName) uninstall failed with exit code $($process.ExitCode)."
         }
     }
+}
+
+function Invoke-NodeFallbackUninstall {
+    $candidatePaths = @(
+        (Join-Path ${env:ProgramFiles} 'nodejs\uninstall.exe'),
+        (Join-Path ${env:ProgramFiles(x86)} 'nodejs\uninstall.exe')
+    ) | Where-Object { $_ }
+
+    foreach ($candidate in $candidatePaths) {
+        if (Test-Path $candidate) {
+            Write-Step "Running fallback uninstall for Node.js via $candidate"
+            $process = Start-Process -FilePath $candidate -ArgumentList '/S' -Wait -PassThru -WindowStyle Hidden
+            if ($process.ExitCode -ne 0 -and -not (Test-IgnorableUninstallExitCode -ExitCode $process.ExitCode)) {
+                throw "Node.js fallback uninstall failed with exit code $($process.ExitCode)."
+            }
+
+            return $true
+        }
+    }
+
+    return $false
 }
 
 if (-not (Test-IsAdministrator)) {
@@ -198,6 +235,9 @@ if ($nodeEntries.Count -gt 0) {
 }
 else {
     Write-Warning 'Node.js uninstall entry was not found.'
+    if (-not (Invoke-NodeFallbackUninstall)) {
+        Write-Warning 'Node.js fallback uninstall path was not found.'
+    }
 }
 
 $pythonEntries = Get-UninstallEntries -DisplayNames $pythonCandidates
