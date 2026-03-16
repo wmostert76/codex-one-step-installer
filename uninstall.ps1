@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-[string]$ScriptVersion = '0.0.6'
+[string]$ScriptVersion = '0.0.7'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Test-IsAdministrator {
@@ -326,6 +326,15 @@ else {
 $pythonLauncherEntries = Get-UninstallEntries -DisplayNames @('Python Launcher')
 if ($pythonLauncherEntries.Count -gt 0) {
     Invoke-UninstallEntries -Entries $pythonLauncherEntries
+}
+else {
+    $pythonLauncherPackages = Get-PackagesByName -NamePatterns @('Python Launcher*')
+    if ($pythonLauncherPackages.Count -gt 0) {
+        Invoke-PackageUninstall -Packages $pythonLauncherPackages
+    }
+    else {
+        Write-Warning 'Python Launcher uninstall entry was not found.'
+    }
 }
 
 if (Test-Path $programDataRoot) {
