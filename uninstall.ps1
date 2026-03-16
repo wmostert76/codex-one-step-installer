@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-[string]$ScriptVersion = '0.0.2'
+[string]$ScriptVersion = '0.0.3'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Test-IsAdministrator {
@@ -22,8 +22,34 @@ function Refresh-ProcessPath {
     $env:Path = ($machinePath, $userPath | Where-Object { $_ }) -join ';'
 }
 
+function Split-CommandString {
+    param([Parameter(Mandatory = $true)][string]$CommandString)
+
+    $trimmedCommand = $CommandString.Trim()
+    if ($trimmedCommand.StartsWith('"')) {
+        $endQuoteIndex = $trimmedCommand.IndexOf('"', 1)
+        if ($endQuoteIndex -lt 0) {
+            throw "Unable to parse uninstall command: $CommandString"
+        }
+
+        return @{
+            FilePath     = $trimmedCommand.Substring(1, $endQuoteIndex - 1)
+            ArgumentList = $trimmedCommand.Substring($endQuoteIndex + 1).Trim()
+        }
+    }
+
+    $parts = $trimmedCommand -split '\s+', 2
+    return @{
+        FilePath     = $parts[0]
+        ArgumentList = if ($parts.Count -gt 1) { $parts[1] } else { '' }
+    }
+}
+
 function Get-UninstallEntry {
-    param([Parameter(Mandatory = $true)][string[]]$DisplayNames)
+    param(
+        [string[]]$DisplayNames = @(),
+        [scriptblock]$FilterScript
+    )
 
     $roots = @(
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
@@ -35,6 +61,10 @@ function Get-UninstallEntry {
             Where-Object {
                 if (-not $_.DisplayName) {
                     return $false
+                }
+
+                if ($FilterScript) {
+                    return [bool](& $FilterScript $_)
                 }
 
                 $installedName = $_.DisplayName
@@ -60,7 +90,8 @@ function Invoke-UninstallEntry {
 
     if ($Entry.QuietUninstallString) {
         Write-Step "Running quiet uninstall for $($Entry.DisplayName)"
-        $process = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/c', $Entry.QuietUninstallString) -Wait -PassThru -WindowStyle Hidden
+        $command = Split-CommandString -CommandString $Entry.QuietUninstallString
+        $process = Start-Process -FilePath $command.FilePath -ArgumentList $command.ArgumentList -Wait -PassThru -WindowStyle Hidden
         if ($process.ExitCode -ne 0) {
             throw "$($Entry.DisplayName) uninstall failed with exit code $($process.ExitCode)."
         }
@@ -79,7 +110,8 @@ function Invoke-UninstallEntry {
             $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arguments -Wait -PassThru
         }
         else {
-            $process = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/c', $Entry.UninstallString) -Wait -PassThru -WindowStyle Hidden
+            $command = Split-CommandString -CommandString $Entry.UninstallString
+            $process = Start-Process -FilePath $command.FilePath -ArgumentList $command.ArgumentList -Wait -PassThru -WindowStyle Hidden
         }
 
         if ($process.ExitCode -ne 0) {
@@ -143,9 +175,15 @@ foreach ($path in $pathsToRemove) {
 
 $nodeDisplayName = if ($state -and $state.nodeVersion) { "Node.js $($state.nodeVersion) (x64)" } else { $null }
 $pythonDisplayName = if ($state -and $state.pythonVersion) { "Python $($state.pythonVersion) (64-bit)" } else { $null }
+$pythonCoreDisplayName = if ($state -and $state.pythonVersion) { "Python $($state.pythonVersion) Core Interpreter (64-bit)" } else { $null }
 
 $nodeCandidates = @($nodeDisplayName, 'Node.js') | Where-Object { $_ }
-$pythonCandidates = @($pythonDisplayName, 'Python 3.9.13 (64-bit)', 'Python 3.9.13 Core Interpreter (64-bit)') | Where-Object { $_ }
+$pythonCandidates = @(
+    $pythonDisplayName,
+    $pythonCoreDisplayName,
+    'Python 3.9.13 (64-bit)',
+    'Python 3.9.13 Core Interpreter (64-bit)'
+) | Where-Object { $_ }
 
 $nodeEntry = Get-UninstallEntry -DisplayNames $nodeCandidates
 if ($nodeEntry) {
@@ -156,6 +194,23 @@ else {
 }
 
 $pythonEntry = Get-UninstallEntry -DisplayNames $pythonCandidates
+if (-not $pythonEntry) {
+    $pythonEntry = Get-UninstallEntry -FilterScript {
+        param($Entry)
+
+        if (-not $Entry.DisplayName) {
+            return $false
+        }
+
+        $displayName = $Entry.DisplayName
+        if ($displayName -eq 'Python Launcher') {
+            return $false
+        }
+
+        return $displayName -match '^Python \d+(\.\d+)+(\s+Core Interpreter)? \(64-bit\)$'
+    }
+}
+
 if ($pythonEntry) {
     Invoke-UninstallEntry -Entry $pythonEntry
 }
