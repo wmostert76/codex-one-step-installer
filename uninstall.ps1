@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-[string]$ScriptVersion = '0.0.3'
+[string]$ScriptVersion = '0.0.4'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Test-IsAdministrator {
@@ -45,19 +45,22 @@ function Split-CommandString {
     }
 }
 
-function Get-UninstallEntry {
+function Get-UninstallEntries {
     param(
         [string[]]$DisplayNames = @(),
         [scriptblock]$FilterScript
     )
 
+    $results = @()
     $roots = @(
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKCU:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
     )
 
     foreach ($root in $roots) {
-        $entry = Get-ItemProperty -Path $root -ErrorAction SilentlyContinue |
+        $entries = Get-ItemProperty -Path $root -ErrorAction SilentlyContinue |
             Where-Object {
                 if (-not $_.DisplayName) {
                     return $false
@@ -75,14 +78,18 @@ function Get-UninstallEntry {
                 }
 
                 return $false
-            } |
-            Select-Object -First 1
-        if ($entry) {
-            return $entry
+            }
+        if ($entries) {
+            $results += $entries
         }
     }
 
-    return $null
+    return @(
+        $results |
+            Sort-Object -Property DisplayName |
+            Group-Object -Property PSPath |
+            ForEach-Object { $_.Group[0] }
+    )
 }
 
 function Invoke-UninstallEntry {
@@ -185,17 +192,17 @@ $pythonCandidates = @(
     'Python 3.9.13 Core Interpreter (64-bit)'
 ) | Where-Object { $_ }
 
-$nodeEntry = Get-UninstallEntry -DisplayNames $nodeCandidates
-if ($nodeEntry) {
-    Invoke-UninstallEntry -Entry $nodeEntry
+$nodeEntries = Get-UninstallEntries -DisplayNames $nodeCandidates
+if ($nodeEntries.Count -gt 0) {
+    Invoke-UninstallEntries -Entries $nodeEntries
 }
 else {
     Write-Warning 'Node.js uninstall entry was not found.'
 }
 
-$pythonEntry = Get-UninstallEntry -DisplayNames $pythonCandidates
-if (-not $pythonEntry) {
-    $pythonEntry = Get-UninstallEntry -FilterScript {
+$pythonEntries = Get-UninstallEntries -DisplayNames $pythonCandidates
+if ($pythonEntries.Count -eq 0) {
+    $pythonEntries = Get-UninstallEntries -FilterScript {
         param($Entry)
 
         if (-not $Entry.DisplayName) {
@@ -203,7 +210,7 @@ if (-not $pythonEntry) {
         }
 
         $displayName = $Entry.DisplayName
-        if ($displayName -eq 'Python Launcher') {
+        if ($displayName -notmatch '^Python ') {
             return $false
         }
 
@@ -211,11 +218,24 @@ if (-not $pythonEntry) {
     }
 }
 
-if ($pythonEntry) {
-    Invoke-UninstallEntry -Entry $pythonEntry
+function Invoke-UninstallEntries {
+    param([Parameter(Mandatory = $true)][object[]]$Entries)
+
+    foreach ($entry in $Entries) {
+        Invoke-UninstallEntry -Entry $entry
+    }
+}
+
+if ($pythonEntries.Count -gt 0) {
+    Invoke-UninstallEntries -Entries $pythonEntries
 }
 else {
     Write-Warning 'Python uninstall entry was not found.'
+}
+
+$pythonLauncherEntries = Get-UninstallEntries -DisplayNames @('Python Launcher')
+if ($pythonLauncherEntries.Count -gt 0) {
+    Invoke-UninstallEntries -Entries $pythonLauncherEntries
 }
 
 if (Test-Path $programDataRoot) {

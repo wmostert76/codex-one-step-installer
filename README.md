@@ -4,7 +4,7 @@ Windows Server 2016 PowerShell installer voor Codex CLI met directe bootstrap, T
 
 ## Release
 
-- Huidige release: `0.0.3`
+- Huidige release: `0.0.4`
 - Repo: `wmostert76/codex-one-step-installer`
 - Licentie: [MIT](LICENSE)
 
@@ -80,8 +80,8 @@ Optionele install-parameters:
 Gebruik voor een sync release:
 
 ```bash
-scripts/sync-release.sh 0.0.3
-scripts/sync-release.sh 0.0.3 /pad/naar/changelog.md
+scripts/sync-release.sh 0.0.4
+scripts/sync-release.sh 0.0.4 /pad/naar/changelog.md
 ```
 
 De bedoeling is:

@@ -6,7 +6,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-[string]$ScriptVersion = '0.0.3'
+[string]$ScriptVersion = '0.0.4'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Write-Host "[codex-bootstrap v$ScriptVersion] Starting"
 
