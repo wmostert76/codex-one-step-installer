@@ -31,19 +31,17 @@ Start-BitsTransfer -Source 'https://raw.githubusercontent.com/wmostert76/codex-o
 
 ## Uninstall
 
-Na installatie staat het uninstallscript op:
-
-```powershell
-C:\ProgramData\CodexOneStepInstaller\uninstall.ps1
-```
+Na installatie staat het uninstallscript ook lokaal op `C:\ProgramData\CodexOneStepInstaller\uninstall.ps1`, maar de aanbevolen manier is direct via `irm`.
 
 Uitvoeren:
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-& 'C:\ProgramData\CodexOneStepInstaller\uninstall.ps1'
+irm 'https://raw.githubusercontent.com/wmostert76/codex-one-step-installer/main/uninstall.ps1' | iex
 ```
+
+Als je toch het lokale bestand wilt starten, gebruik dan `& 'C:\ProgramData\CodexOneStepInstaller\uninstall.ps1'`.
 
 ## Bestanden
 
