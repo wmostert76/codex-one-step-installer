@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-[string]$ScriptVersion = '0.0.5'
+[string]$ScriptVersion = '0.0.6'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Test-IsAdministrator {
@@ -164,6 +164,49 @@ function Invoke-NodeFallbackUninstall {
     return $false
 }
 
+function Get-PackagesByName {
+    param([Parameter(Mandatory = $true)][string[]]$NamePatterns)
+
+    $results = @()
+    foreach ($providerName in @('Programs', 'msi')) {
+        try {
+            $packages = Get-Package -ProviderName $providerName -ErrorAction Stop
+            foreach ($package in $packages) {
+                foreach ($pattern in $NamePatterns) {
+                    if ($pattern -and $package.Name -like $pattern) {
+                        $results += $package
+                        break
+                    }
+                }
+            }
+        }
+        catch {
+            continue
+        }
+    }
+
+    return @(
+        $results |
+            Sort-Object -Property Name, Version |
+            Group-Object -Property FastPackageReference |
+            ForEach-Object { $_.Group[0] }
+    )
+}
+
+function Invoke-PackageUninstall {
+    param([Parameter(Mandatory = $true)][object[]]$Packages)
+
+    foreach ($package in $Packages) {
+        Write-Step "Running package uninstall for $($package.Name)"
+        try {
+            Uninstall-Package -InputObject $package -Force -ErrorAction Stop | Out-Null
+        }
+        catch {
+            Write-Warning "Package uninstall for $($package.Name) failed: $($_.Exception.Message)"
+        }
+    }
+}
+
 if (-not (Test-IsAdministrator)) {
     throw 'Run this uninstall script from an elevated PowerShell session.'
 }
@@ -237,6 +280,13 @@ else {
     Write-Warning 'Node.js uninstall entry was not found.'
     if (-not (Invoke-NodeFallbackUninstall)) {
         Write-Warning 'Node.js fallback uninstall path was not found.'
+        $nodePackages = Get-PackagesByName -NamePatterns @('Node.js*', 'Nodejs*')
+        if ($nodePackages.Count -gt 0) {
+            Invoke-PackageUninstall -Packages $nodePackages
+        }
+        else {
+            Write-Warning 'Node.js package uninstall entry was not found.'
+        }
     }
 }
 
