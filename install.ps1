@@ -9,7 +9,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-[string]$ScriptVersion = '0.0.8'
+[string]$ScriptVersion = '0.0.9'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Test-IsAdministrator {
@@ -38,6 +38,58 @@ function Get-CommandPath {
     }
 
     return $null
+}
+
+function Get-InstalledNodeVersion {
+    $nodeCommand = Get-CommandPath -Name 'node.exe'
+    if (-not $nodeCommand) {
+        $candidate = Join-Path ${env:ProgramFiles} 'nodejs\node.exe'
+        if (Test-Path $candidate) {
+            $nodeCommand = $candidate
+        }
+    }
+
+    if (-not $nodeCommand) {
+        return $null
+    }
+
+    $versionOutput = & $nodeCommand '--version' 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $versionOutput) {
+        return $null
+    }
+
+    return $versionOutput.Trim().TrimStart('v')
+}
+
+function Get-InstalledPythonVersion {
+    $pythonCommand = Get-CommandPath -Name 'python.exe'
+    if (-not $pythonCommand) {
+        return $null
+    }
+
+    $versionOutput = & $pythonCommand '--version' 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $versionOutput) {
+        return $null
+    }
+
+    $match = [regex]::Match($versionOutput, 'Python\s+([0-9]+(\.[0-9]+)+)')
+    if (-not $match.Success) {
+        return $null
+    }
+
+    return $match.Groups[1].Value
+}
+
+function Get-CodexCommandPath {
+    $codexCommand = Get-CommandPath -Name 'codex.cmd'
+    if (-not $codexCommand) {
+        $candidate = Join-Path $env:APPDATA 'npm\codex.cmd'
+        if (Test-Path $candidate) {
+            $codexCommand = $candidate
+        }
+    }
+
+    return $codexCommand
 }
 
 function Install-Node {
@@ -132,8 +184,23 @@ New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
 
 try {
     Write-Step 'Starting installation'
-    Install-Node -Version $NodeVersion -TempDir $tempDir
-    Install-Python -Version $PythonVersion -TempDir $tempDir
+
+    $installedNodeVersion = Get-InstalledNodeVersion
+    if ($installedNodeVersion -eq $NodeVersion) {
+        Write-Step "Skipping Node.js installation because version $NodeVersion is already installed"
+    }
+    else {
+        Install-Node -Version $NodeVersion -TempDir $tempDir
+    }
+
+    $installedPythonVersion = Get-InstalledPythonVersion
+    if ($installedPythonVersion -eq $PythonVersion) {
+        Write-Step "Skipping Python installation because version $PythonVersion is already installed"
+    }
+    else {
+        Install-Python -Version $PythonVersion -TempDir $tempDir
+    }
+
     Refresh-ProcessPath
 
     $npmCommand = Get-CommandPath -Name 'npm.cmd'
@@ -144,16 +211,17 @@ try {
         throw 'npm.cmd was not found after Node.js installation.'
     }
 
-    Install-Codex -NpmCommand $npmCommand
+    $codexCommand = Get-CodexCommandPath
+    if ($codexCommand) {
+        Write-Step 'Skipping Codex installation because codex.cmd is already available'
+    }
+    else {
+        Install-Codex -NpmCommand $npmCommand
+    }
+
     Refresh-ProcessPath
 
-    $codexCommand = Get-CommandPath -Name 'codex.cmd'
-    if (-not $codexCommand) {
-        $candidate = Join-Path $env:APPDATA 'npm\codex.cmd'
-        if (Test-Path $candidate) {
-            $codexCommand = $candidate
-        }
-    }
+    $codexCommand = Get-CodexCommandPath
     if (-not $codexCommand) {
         throw 'codex.cmd was not found after npm installation.'
     }

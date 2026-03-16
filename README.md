@@ -4,7 +4,7 @@ Windows Server 2016 PowerShell installer voor Codex CLI met directe bootstrap, T
 
 ## Release
 
-- Huidige release: `0.0.8`
+- Huidige release: `0.0.9`
 - Repo: `wmostert76/codex-one-step-installer`
 - Licentie: [MIT](LICENSE)
 
@@ -14,6 +14,7 @@ Windows Server 2016 PowerShell installer voor Codex CLI met directe bootstrap, T
 - downloadt en installeert Node.js
 - downloadt en installeert Python
 - installeert `@openai/codex` globaal via npm
+- slaat Node.js, Python en Codex over als de gevraagde installatie al aanwezig is
 - start Codex direct met `--dangerously-bypass-approvals-and-sandbox --search`
 - zet een uninstallscript neer dat Codex, Node.js en Python weer verwijdert
 
@@ -80,8 +81,8 @@ Optionele install-parameters:
 Gebruik voor een sync release:
 
 ```bash
-scripts/sync-release.sh 0.0.8
-scripts/sync-release.sh 0.0.8 /pad/naar/changelog.md
+scripts/sync-release.sh 0.0.9
+scripts/sync-release.sh 0.0.9 /pad/naar/changelog.md
 ```
 
 De bedoeling is:
